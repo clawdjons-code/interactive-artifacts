@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Sprites: Reference-First Workflow</title>
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --surface: #f0ece4;
+      --surface-2: #fffaf0;
+      --text: #1a1614;
+      --muted: #665c53;
+      --rule: #3a322c;
+      --accent: #b8430a;
+      --accent-2: #245f73;
+      --good: #2f6b3a;
+      --warn: #9b6614;
+      --bad: #a13b32;
+      --good-bg: #e5f3e4;
+      --warn-bg: #fff1cd;
+      --bad-bg: #f8ddda;
+      --code-bg: #231f1c;
+      --code-text: #f7efe7;
+      --shadow: 0 18px 50px rgba(31, 26, 22, .14);
+      --radius: 22px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121212;
+        --surface: #1f1d1b;
+        --surface-2: #292520;
+        --text: #ededed;
+        --muted: #b6ada4;
+        --rule: #51483f;
+        --accent: #ff9468;
+        --accent-2: #75c6df;
+        --good: #79c98d;
+        --warn: #e8bd61;
+        --bad: #f0948d;
+        --good-bg: #19351f;
+        --warn-bg: #3b2d13;
+        --bad-bg: #3d1f1d;
+        --code-bg: #080807;
+        --code-text: #f4eadf;
+        --shadow: 0 18px 55px rgba(0, 0, 0, .42);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 18%, transparent), transparent 35rem),
+        radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 35rem),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.6;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button {
+      border: 1px solid var(--rule);
+      background: var(--surface-2);
+      color: var(--text);
+      border-radius: 999px;
+      padding: .72rem 1rem;
+      cursor: pointer;
+      min-height: 44px;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    }
+    button:hover { transform: translateY(-1px); border-color: var(--accent); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 75%, transparent);
+      outline-offset: 3px;
+    }
+    button[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .hud {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid color-mix(in srgb, var(--rule) 55%, transparent);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: blur(16px);
+    }
+    .hud-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: .7rem 1rem;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: .75rem;
+      align-items: center;
+    }
+    .bar { height: .7rem; border-radius: 999px; background: color-mix(in srgb, var(--muted) 22%, transparent); overflow: hidden; }
+    .bar > span { display: block; width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .45s ease; }
+    .pill {
+      border: 1px solid color-mix(in srgb, var(--rule) 65%, transparent);
+      border-radius: 999px;
+      padding: .25rem .65rem;
+      font-size: .82rem;
+      white-space: nowrap;
+      background: var(--surface);
+    }
+    .pill strong { font-variant-numeric: tabular-nums; }
+
+    main { max-width: 1120px; margin: 0 auto; padding: 1rem; }
+    .hero {
+      min-height: calc(100vh - 4rem);
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 1.25rem;
+      align-items: center;
+      padding: 2rem 0 1.5rem;
+    }
+    .card {
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      border: 1px solid color-mix(in srgb, var(--rule) 42%, transparent);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(1rem, 2vw, 1.45rem);
+    }
+    h1, h2, h3 { line-height: 1.12; margin: 0 0 .65rem; }
+    h1 { font-size: clamp(2.2rem, 6vw, 5.2rem); letter-spacing: -.055em; max-width: 10ch; }
+    h2 { font-size: clamp(1.55rem, 3vw, 2.25rem); letter-spacing: -.03em; }
+    h3 { font-size: 1.15rem; }
+    p { margin: 0 0 1rem; max-width: 65ch; }
+    .lede { font-size: clamp(1.08rem, 2vw, 1.35rem); color: var(--muted); max-width: 54ch; }
+    .tagline { color: var(--accent); text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; font-weight: 800; }
+    .nav-dots { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1.1rem; }
+    .nav-dots a {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid color-mix(in srgb, var(--rule) 60%, transparent);
+      border-radius: 999px;
+      padding: .4rem .7rem;
+      font-size: .88rem;
+      background: var(--surface);
+    }
+
+    .pixel-demo {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      aspect-ratio: 1;
+      width: min(100%, 360px);
+      margin: 0 auto;
+      padding: 1rem;
+      background: var(--code-bg);
+      border-radius: 18px;
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--code-text) 12%, transparent);
+    }
+    .px { border-radius: 3px; background: var(--c); }
+    .px.empty { opacity: .08; }
+
+    .segment {
+      scroll-margin-top: 95px;
+      margin: 1rem 0;
+      display: grid;
+      grid-template-columns: .95fr 1.05fr;
+      gap: 1rem;
+      align-items: stretch;
+    }
+    .segment.full { grid-template-columns: 1fr; }
+    .kicker { color: var(--accent); font-weight: 850; font-size: .82rem; letter-spacing: .12em; text-transform: uppercase; }
+    .mini { color: var(--muted); font-size: .94rem; }
+    .choice-grid, .two-col, .option-row { display: grid; gap: .7rem; }
+    .choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .choice {
+      text-align: left;
+      border-radius: 16px;
+      padding: 1rem;
+      min-height: 88px;
+      background: var(--surface-2);
+    }
+    .choice.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, var(--surface-2)); }
+    .feedback {
+      border-radius: 16px;
+      padding: 1rem;
+      margin-top: .8rem;
+      border: 1px solid color-mix(in srgb, var(--rule) 35%, transparent);
+      background: var(--surface-2);
+    }
+    .feedback.good { background: var(--good-bg); border-color: color-mix(in srgb, var(--good) 50%, transparent); }
+    .feedback.warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .method {
+      border: 1px solid color-mix(in srgb, var(--rule) 45%, transparent);
+      border-radius: 18px;
+      padding: 1rem;
+      background: var(--surface-2);
+    }
+    .method h3 { display: flex; justify-content: space-between; gap: .5rem; }
+    .badge { font-size: .72rem; padding: .15rem .45rem; border-radius: 999px; border: 1px solid currentColor; color: var(--accent); align-self: start; }
+    .score { height: .75rem; border-radius: 999px; background: color-mix(in srgb, var(--muted) 22%, transparent); overflow: hidden; margin-top: .45rem; }
+    .score span { display: block; height: 100%; width: var(--w); background: var(--accent); }
+    .score.good span { background: var(--good); }
+
+    .pipeline { display: grid; gap: .65rem; }
+    .step {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: .75rem;
+      align-items: center;
+      border: 1px solid color-mix(in srgb, var(--rule) 38%, transparent);
+      background: var(--surface-2);
+      border-radius: 16px;
+      padding: .75rem;
+    }
+    .num {
+      width: 2rem; height: 2rem; display: grid; place-items: center;
+      border-radius: 50%; background: var(--code-bg); color: var(--code-text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .step.done { border-color: color-mix(in srgb, var(--good) 65%, transparent); background: var(--good-bg); }
+    .step button { padding: .45rem .75rem; min-height: 38px; }
+
+    .prompt-panel textarea {
+      width: 100%; min-height: 240px; resize: vertical;
+      background: var(--code-bg); color: var(--code-text);
+      border: 1px solid color-mix(in srgb, var(--rule) 70%, transparent);
+      border-radius: 16px; padding: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .92rem; line-height: 1.5;
+    }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; margin-bottom: .8rem; }
+    label { display: grid; gap: .25rem; font-size: .88rem; color: var(--muted); }
+    input, select {
+      min-height: 42px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--rule) 45%, transparent);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: .55rem .7rem;
+    }
+
+    .checklist { display: grid; gap: .55rem; }
+    .check {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: .6rem;
+      align-items: start;
+      padding: .7rem;
+      border-radius: 14px;
+      background: var(--surface-2);
+      border: 1px solid color-mix(in srgb, var(--rule) 35%, transparent);
+    }
+    .check input { min-height: auto; width: 1.2rem; height: 1.2rem; margin-top: .22rem; accent-color: var(--accent); }
+    .verdict { min-height: 120px; display: grid; align-content: center; }
+    .big-result { font-size: clamp(1.4rem, 4vw, 3rem); line-height: 1; font-weight: 900; letter-spacing: -.05em; }
+    .coming { border-left: 4px solid var(--accent); padding: .75rem 1rem; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-radius: 14px; margin-top: 1rem; }
+    .complete { border-color: color-mix(in srgb, var(--good) 70%, transparent); }
+
+    .finale { text-align: center; padding: 2rem; margin-bottom: 4rem; }
+    .finale .big-result { color: var(--accent); }
+
+    @media (max-width: 820px) {
+      .hero, .segment, .compare { grid-template-columns: 1fr; }
+      .hud-inner { grid-template-columns: 1fr auto; }
+      .hud-inner .pill:last-child { display: none; }
+      .choice-grid, .controls { grid-template-columns: 1fr; }
+      main { padding: .75rem; }
+      .card { border-radius: 18px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+      button:hover { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hud" aria-label="Learning progress">
+    <div class="hud-inner">
+      <div class="bar" aria-hidden="true"><span id="progressFill"></span></div>
+      <div class="pill"><strong id="doneCount">0</strong>/5 complete</div>
+      <div class="pill"><strong id="points">0</strong> pts <span id="streak" aria-live="polite"></span></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div>
+        <div class="tagline">One concept</div>
+        <h1>Reference-first AI sprites.</h1>
+        <p class="lede">AI gets fast when you stop asking it to invent the character every time. The core move: create one cleaned base sprite, then use it as the reference for every pose and animation.</p>
+        <div class="nav-dots" aria-label="Jump to segments">
+          <a href="#predict">Predict</a>
+          <a href="#compare">Compare</a>
+          <a href="#pipeline">Pipeline</a>
+          <a href="#prompt">Prompt</a>
+          <a href="#rubric">Rubric</a>
+        </div>
+      </div>
+      <div class="card" aria-label="Pixel character preview">
+        <div class="pixel-demo" id="pixelDemo"></div>
+        <p class="mini" style="margin-top:1rem">This toy sprite is deliberately simple: the lesson is workflow consistency, not drawing anatomy.</p>
+      </div>
+    </section>
+
+    <section class="segment" id="predict" data-seg="predict">
+      <div class="card">
+        <div class="kicker">Predict first</div>
+        <h2>Which AI request usually produces the more usable game sprite?</h2>
+        <p>Pick before you reveal. You’re testing the workflow, not your art taste.</p>
+        <div class="choice-grid" role="group" aria-label="Prediction choices">
+          <button class="choice" data-predict="text">Text-only: “make a 32×32 knight sprite sheet.”</button>
+          <button class="choice" data-predict="reference">Reference-first: “use this cleaned base sprite as the exact character.”</button>
+        </div>
+        <button id="revealPredict" disabled style="margin-top:.8rem">Reveal why →</button>
+        <div id="predictFeedback" class="feedback" hidden></div>
+      </div>
+      <div class="card">
+        <h3>The failure mode</h3>
+        <p class="mini">Text-only prompts ask the model to solve four jobs at once:</p>
+        <ol>
+          <li>Invent the character.</li>
+          <li>Choose the style.</li>
+          <li>Maintain the grid.</li>
+          <li>Animate consistent frames.</li>
+        </ol>
+        <p class="mini">Reference-first removes the biggest variable: identity drift.</p>
+        <div class="coming">Coming up: compare the two workflows side by side.</div>
+      </div>
+    </section>
+
+    <section class="segment full" id="compare" data-seg="compare">
+      <div class="card">
+        <div class="kicker">Observe</div>
+        <h2>Text-only vs. reference-first</h2>
+        <p>Click each method. The goal is not “AI never works.” The goal is to give AI fewer chances to wander.</p>
+        <div class="compare">
+          <button class="method" data-method="textOnly">
+            <h3>Text-only <span class="badge">fast but loose</span></h3>
+            <p class="mini">Good for moodboards and rough concepts. Weak for keeping the same outfit, silhouette, and proportions across frames.</p>
+            <div>Consistency</div><div class="score" style="--w:38%"><span></span></div>
+            <div>Speed</div><div class="score good" style="--w:90%"><span></span></div>
+          </button>
+          <button class="method" data-method="refFirst">
+            <h3>Reference-first <span class="badge">production-ish</span></h3>
+            <p class="mini">You clean one base sprite, then use it as the visual contract for idle, walk, attack, damage, and variants.</p>
+            <div>Consistency</div><div class="score good" style="--w:82%"><span></span></div>
+            <div>Speed after base</div><div class="score good" style="--w:78%"><span></span></div>
+          </button>
+        </div>
+        <div id="methodFeedback" class="feedback" hidden></div>
+      </div>
+    </section>
+
+    <section class="segment" id="pipeline" data-seg="pipeline">
+      <div class="card">
+        <div class="kicker">Build the mental model</div>
+        <h2>The 6-step loop</h2>
+        <p>Mark each step as done. This is the workflow you repeat for every character.</p>
+        <div class="pipeline" id="pipelineSteps"></div>
+      </div>
+      <div class="card">
+        <h3>Why this order works</h3>
+        <p><strong>Clean one sprite before asking for a sheet.</strong> Otherwise every frame becomes a slightly different character.</p>
+        <p class="mini">Aseprite or similar cleanup is not a betrayal of AI speed. It is the control surface that makes the output usable.</p>
+        <div id="pipelineFeedback" class="feedback warn">Finish the loop to unlock the prompt generator.</div>
+      </div>
+    </section>
+
+    <section class="segment full" id="prompt" data-seg="prompt">
+      <div class="card prompt-panel">
+        <div class="kicker">Generate</div>
+        <h2>Prompt builder: reference-first sprite request</h2>
+        <p>Edit the fields. The prompt stays narrow: one character, one size, one animation at a time.</p>
+        <div class="controls">
+          <label>Character
+            <input id="character" value="tiny plague doctor merchant" />
+          </label>
+          <label>Sprite size
+            <select id="size">
+              <option>32×32</option>
+              <option>48×48</option>
+              <option>64×64</option>
+              <option>16×16</option>
+            </select>
+          </label>
+          <label>Animation
+            <select id="animation">
+              <option>4-frame idle animation</option>
+              <option>6-frame walk cycle</option>
+              <option>4-frame attack windup and strike</option>
+              <option>single neutral pose</option>
+            </select>
+          </label>
+        </div>
+        <textarea id="promptText" aria-label="Generated AI sprite prompt"></textarea>
+        <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.8rem">
+          <button id="copyPrompt">Copy prompt</button>
+          <button id="markPrompt">I would use this prompt</button>
+        </div>
+        <div id="copyFeedback" class="feedback" hidden></div>
+      </div>
+    </section>
+
+    <section class="segment" id="rubric" data-seg="rubric">
+      <div class="card">
+        <div class="kicker">Check the output</div>
+        <h2>Is this sprite game-ready?</h2>
+        <p>AI can make pretty pixels. This quick rubric catches the usual reasons a sprite fails in-game.</p>
+        <div class="checklist">
+          <label class="check"><input type="checkbox" class="rubricCheck" /><span>Readable silhouette at actual game scale</span></label>
+          <label class="check"><input type="checkbox" class="rubricCheck" /><span>Same outfit, colors, and proportions across frames</span></label>
+          <label class="check"><input type="checkbox" class="rubricCheck" /><span>Transparent or easily removable background</span></label>
+          <label class="check"><input type="checkbox" class="rubricCheck" /><span>Feet/head alignment does not jitter between frames</span></label>
+          <label class="check"><input type="checkbox" class="rubricCheck" /><span>Palette is limited enough to clean quickly</span></label>
+        </div>
+      </div>
+      <div class="card verdict" aria-live="polite">
+        <div class="big-result" id="rubricScore">0 / 5</div>
+        <p id="rubricVerdict" class="mini">Check the criteria. At 4–5, it is worth polishing. At 0–3, regenerate or simplify.</p>
+        <button id="finishArtifact" disabled>Finish lesson →</button>
+      </div>
+    </section>
+
+    <section class="card finale" id="finale" hidden>
+      <div class="kicker">Unlocked</div>
+      <h2>You have the core workflow.</h2>
+      <p style="margin-left:auto;margin-right:auto">Use AI for speed, but anchor it with a cleaned reference sprite. That one constraint turns “random cool pixels” into a repeatable asset pipeline.</p>
+      <div class="big-result"><span id="finalPoints">0</span> pts</div>
+      <p class="mini" style="margin-left:auto;margin-right:auto">Next artifact, if useful: turning a single cleaned sprite into a walk cycle.</p>
+    </section>
+  </main>
+
+  <script>
+    const TOTAL = 5;
+    const STORAGE_KEY = 'ai-sprite-reference-first-v1';
+    const state = {
+      done: new Set(),
+      points: 0,
+      streak: 0,
+      prediction: null,
+      pipelineDone: new Set(),
+      copied: false
+    };
+
+    const $ = (s, root=document) => root.querySelector(s);
+    const $$ = (s, root=document) => [...root.querySelectorAll(s)];
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        done: [...state.done], points: state.points, streak: state.streak,
+        prediction: state.prediction, pipelineDone: [...state.pipelineDone], copied: state.copied
+      }));
+    }
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        (s.done || []).forEach(x => state.done.add(x));
+        state.points = s.points || 0;
+        state.streak = s.streak || 0;
+        state.prediction = s.prediction || null;
+        (s.pipelineDone || []).forEach(x => state.pipelineDone.add(x));
+        state.copied = !!s.copied;
+      } catch (_) {}
+    }
+    function renderHud() {
+      $('#progressFill').style.width = ((state.done.size / TOTAL) * 100) + '%';
+      $('#doneCount').textContent = state.done.size;
+      $('#points').textContent = state.points;
+      $('#streak').textContent = state.streak >= 2 ? ` · streak ${state.streak}` : '';
+    }
+    function complete(seg, pts=20) {
+      if (state.done.has(seg)) return;
+      state.done.add(seg);
+      state.points += pts;
+      state.streak += 1;
+      const el = document.querySelector(`[data-seg="${seg}"] .card`);
+      if (el) el.classList.add('complete');
+      save(); renderHud();
+    }
+
+    function makePixelDemo() {
+      const grid = [
+        '........',
+        '..hhhh..',
+        '.hffffh.',
+        '.f9ff9f.',
+        '..f33f..',
+        '..r33r..',
+        '.rrssrr.',
+        '..b..b..'
+      ];
+      const colors = { h:'#3b2a21', f:'#d8b08c', '9':'#1b1715', '3':'#7a2f24', r:'#4c2520', s:'#d7c16f', b:'#2f334d', '.':'transparent' };
+      const demo = $('#pixelDemo');
+      grid.join('').split('').forEach(ch => {
+        const cell = document.createElement('div');
+        cell.className = 'px' + (ch === '.' ? ' empty' : '');
+        cell.style.setProperty('--c', colors[ch]);
+        demo.appendChild(cell);
+      });
+    }
+
+    function initPrediction() {
+      $$('.choice').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.prediction = btn.dataset.predict;
+          $$('.choice').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          $('#revealPredict').disabled = false;
+          save();
+        });
+      });
+      $('#revealPredict').addEventListener('click', () => {
+        const box = $('#predictFeedback');
+        const right = state.prediction === 'reference';
+        box.hidden = false;
+        box.className = 'feedback ' + (right ? 'good' : 'warn');
+        box.innerHTML = right
+          ? '<strong>Correct.</strong> A reference image gives the model a visual contract: silhouette, colors, proportions, and outfit details.'
+          : '<strong>Common trap.</strong> Text-only is fine for rough ideas, but it invites identity drift when you need multiple frames.';
+        complete('predict', 20);
+      });
+    }
+
+    function initCompare() {
+      $$('.method').forEach(btn => btn.addEventListener('click', () => {
+        const box = $('#methodFeedback');
+        box.hidden = false;
+        box.className = 'feedback ' + (btn.dataset.method === 'refFirst' ? 'good' : 'warn');
+        box.innerHTML = btn.dataset.method === 'refFirst'
+          ? '<strong>Use this for assets.</strong> Once the base sprite is cleaned, every later request can preserve the same visual identity.'
+          : '<strong>Use this for ideation.</strong> Text-only is fast for exploring ten directions. It is not the best final asset workflow.';
+        complete('compare', 20);
+      }));
+    }
+
+    const pipeline = [
+      ['Generate concepts', 'Ask for 8–12 rough ideas, not a sheet.'],
+      ['Choose one base', 'Pick the clearest silhouette, not the most detailed art.'],
+      ['Clean one sprite', 'Fix pixels, palette, outline, and transparency in Aseprite.'],
+      ['Use it as reference', 'Attach the cleaned sprite in every later AI request.'],
+      ['Generate one animation', 'Idle, walk, or attack — one motion at a time.'],
+      ['Clean and export', 'Align frames, remove jitter, export sheet for the engine.']
+    ];
+    function initPipeline() {
+      const holder = $('#pipelineSteps');
+      pipeline.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'step';
+        row.dataset.step = i;
+        row.innerHTML = `<div class="num">${i+1}</div><div><strong>${s[0]}</strong><br><span class="mini">${s[1]}</span></div><button type="button">Done</button>`;
+        row.querySelector('button').addEventListener('click', () => {
+          state.pipelineDone.add(i);
+          row.classList.add('done');
+          row.querySelector('button').textContent = '✓';
+          row.querySelector('button').disabled = true;
+          if (state.pipelineDone.size === pipeline.length) {
+            $('#pipelineFeedback').className = 'feedback good';
+            $('#pipelineFeedback').innerHTML = '<strong>Unlocked.</strong> You now have the repeatable loop. Generate from the cleaned reference, not from memory.';
+            complete('pipeline', 25);
+          }
+          save();
+        });
+        holder.appendChild(row);
+      });
+    }
+
+    function updatePrompt() {
+      const character = $('#character').value.trim() || 'tiny fantasy character';
+      const size = $('#size').value;
+      const animation = $('#animation').value;
+      $('#promptText').value = `Using the attached cleaned base sprite as the exact character reference, create a ${size} pixel art game sprite for a ${character}.\n\nTask: ${animation}.\n\nPreserve the same outfit, colors, silhouette, proportions, and face direction from the reference. Use a limited 16-color palette, crisp hard-edged pixels, no anti-aliasing, transparent background, and no text or watermark. If this is an animation, place frames in one horizontal row with even spacing and keep feet/head alignment stable across frames. Do not redesign the character.`;
+    }
+    function initPrompt() {
+      ['character','size','animation'].forEach(id => document.getElementById(id).addEventListener('input', updatePrompt));
+      updatePrompt();
+      $('#copyPrompt').addEventListener('click', async () => {
+        $('#promptText').select();
+        try { await navigator.clipboard.writeText($('#promptText').value); }
+        catch (_) { document.execCommand('copy'); }
+        $('#copyFeedback').hidden = false;
+        $('#copyFeedback').className = 'feedback good';
+        $('#copyFeedback').textContent = 'Copied. More important: notice how narrow it is. One reference, one sprite size, one animation.';
+        state.copied = true;
+        complete('prompt', 20);
+        save();
+      });
+      $('#markPrompt').addEventListener('click', () => {
+        $('#copyFeedback').hidden = false;
+        $('#copyFeedback').className = 'feedback good';
+        $('#copyFeedback').textContent = 'Marked. This is the useful shape: constrain identity first, then ask for motion.';
+        complete('prompt', 20);
+      });
+    }
+
+    function initRubric() {
+      function update() {
+        const checked = $$('.rubricCheck').filter(x => x.checked).length;
+        $('#rubricScore').textContent = `${checked} / 5`;
+        const verdict = $('#rubricVerdict');
+        if (checked >= 4) {
+          verdict.innerHTML = '<strong>Polish it.</strong> This is probably worth cleanup and export.';
+          $('#finishArtifact').disabled = false;
+          complete('rubric', 25);
+        } else if (checked >= 2) {
+          verdict.innerHTML = '<strong>Borderline.</strong> Simplify the prompt or regenerate from the reference.';
+          $('#finishArtifact').disabled = true;
+        } else {
+          verdict.innerHTML = 'Check the criteria. At 4–5, it is worth polishing. At 0–3, regenerate or simplify.';
+          $('#finishArtifact').disabled = true;
+        }
+      }
+      $$('.rubricCheck').forEach(c => c.addEventListener('change', update));
+      $('#finishArtifact').addEventListener('click', () => {
+        $('#finale').hidden = false;
+        $('#finalPoints').textContent = state.points;
+        $('#finale').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    function restoreVisualState() {
+      state.pipelineDone.forEach(i => {
+        const row = document.querySelector(`.step[data-step="${i}"]`);
+        if (row) {
+          row.classList.add('done');
+          const btn = row.querySelector('button');
+          btn.textContent = '✓'; btn.disabled = true;
+        }
+      });
+      if (state.prediction) {
+        const btn = document.querySelector(`.choice[data-predict="${state.prediction}"]`);
+        if (btn) btn.classList.add('selected');
+        $('#revealPredict').disabled = false;
+      }
+      state.done.forEach(seg => {
+        const el = document.querySelector(`[data-seg="${seg}"] .card`);
+        if (el) el.classList.add('complete');
+      });
+    }
+
+    load();
+    makePixelDemo();
+    initPrediction();
+    initCompare();
+    initPipeline();
+    initPrompt();
+    initRubric();
+    restoreVisualState();
+    renderHud();
+  </script>
+</body>
+</html>
