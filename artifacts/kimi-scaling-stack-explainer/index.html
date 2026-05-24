@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kimi Scaling Stack — Interactive Explainer</title>
+  <meta name="description" content="An interactive educational artifact explaining the core argument of the Kimi open-model scaling presentation: capability comes from compounding scaling levers, not just bigger models." />
+  <style>
+    :root{
+      color-scheme: light dark;
+      --bg:#f7f3ea; --ink:#171512; --muted:#675f52; --panel:#fffaf0; --panel2:#efe8d8;
+      --line:#d6caba; --accent:#6b4cff; --accent2:#0e9f87; --hot:#d55b3e; --gold:#ad7a15;
+      --shadow:0 22px 60px rgba(49,39,25,.13); --radius:24px; --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      --sans:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif:ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{--bg:#11100e;--ink:#f7efe2;--muted:#b8ab98;--panel:#1a1815;--panel2:#242018;--line:#3a3328;--shadow:0 22px 60px rgba(0,0,0,.32);--accent:#9d8cff;--accent2:#35ccb1;--hot:#ff8266;--gold:#e2b458;}
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:radial-gradient(circle at top left, color-mix(in oklab,var(--accent) 14%,transparent), transparent 34rem),var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.45}
+    a{color:inherit}.wrap{width:min(1180px,calc(100% - 32px));margin:0 auto}.skip{position:absolute;left:-999px}.skip:focus{left:16px;top:12px;z-index:9;background:var(--panel);padding:10px 14px;border:1px solid var(--line);border-radius:10px}
+    header{padding:44px 0 22px}.eyebrow{font:700 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--accent)}
+    h1{font-family:var(--serif);font-size:clamp(42px,8vw,96px);line-height:.94;letter-spacing:-.055em;margin:12px 0 16px;max-width:1000px} h2{font-size:clamp(28px,4vw,52px);line-height:1;letter-spacing:-.045em;margin:0 0 14px} h3{font-size:24px;line-height:1.05;letter-spacing:-.03em;margin:0 0 8px} p{margin:0}.lead{font-size:clamp(18px,2.25vw,25px);max-width:850px;color:var(--muted)}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:stretch;margin:28px 0 20px}.hero-card,.panel,.chapter,.quiz,.source{background:linear-gradient(180deg,color-mix(in oklab,var(--panel) 96%,white),var(--panel));border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero-card{padding:28px;display:grid;align-content:space-between;min-height:420px}.thesis{font-size:clamp(24px,3vw,38px);line-height:1.05;letter-spacing:-.04em;font-weight:800}.thesis mark{background:linear-gradient(90deg,color-mix(in oklab,var(--accent) 25%,transparent),transparent);color:inherit;border-radius:8px;padding:0 .08em}.note{color:var(--muted);font-size:14px}.poster{overflow:hidden;position:relative}.poster img{width:100%;height:100%;min-height:420px;object-fit:cover;display:block;filter:saturate(.92) contrast(1.02)}.poster .cap{position:absolute;left:14px;right:14px;bottom:14px;background:color-mix(in oklab,var(--panel) 86%,transparent);border:1px solid var(--line);border-radius:16px;padding:12px;font-size:13px;backdrop-filter:blur(10px)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}.mini{padding:18px;background:var(--panel2);border:1px solid var(--line);border-radius:18px}.mini b{display:block;font-size:18px;margin-bottom:6px}.mini span{display:block;color:var(--muted);font-size:14px}
+    .sim{margin:40px 0}.sim-layout{display:grid;grid-template-columns:.88fr 1.12fr;gap:18px}.panel{padding:22px}.control{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:16px 0}.control:first-of-type{padding-top:6px}.control:last-child{border-bottom:0} label{font-weight:750}.sub{display:block;color:var(--muted);font-size:13px;font-weight:500;margin-top:2px}.val{font:800 15px/1 var(--mono);color:var(--accent)} input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent);min-height:32px}.equation{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.factor{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px;min-height:105px}.factor .n{font:900 28px/1 var(--mono);color:var(--accent)}.factor small{display:block;color:var(--muted);margin-top:8px}.bar-wrap{height:28px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;overflow:hidden}.bar{height:100%;width:10%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s ease}.readout{display:flex;justify-content:space-between;gap:18px;align-items:center;margin:14px 0 0}.readout strong{font-size:34px;letter-spacing:-.05em}.bottleneck{border-left:4px solid var(--hot);padding:12px 14px;background:color-mix(in oklab,var(--hot) 10%,transparent);border-radius:14px;margin-top:16px;color:var(--muted)}
+    .chapters{margin:44px 0}.tabs{display:flex;gap:8px;overflow:auto;padding:6px 0 14px}.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:11px 14px;min-height:44px;font-weight:750;white-space:nowrap;cursor:pointer}.tab[aria-selected=true]{background:var(--ink);color:var(--bg)}.chapter{display:none;grid-template-columns:.95fr 1.05fr;gap:22px;padding:22px}.chapter.active{display:grid}.chapter img{width:100%;border-radius:18px;border:1px solid var(--line);background:#111}.chapter ul{margin:14px 0 0;padding-left:20px;color:var(--muted)}.tag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font:750 12px/1 var(--mono);color:var(--muted);margin-bottom:14px}.quote{margin-top:16px;padding:14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+    .flow{margin:44px 0}.flow-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.step{position:relative;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}.step::after{content:"→";position:absolute;right:-13px;top:44%;color:var(--muted);font-weight:900}.step:last-child::after{display:none}.step .k{font:900 12px/1 var(--mono);color:var(--accent);text-transform:uppercase}.step b{display:block;margin:8px 0 5px}.step span{font-size:13px;color:var(--muted)}
+    .tasks{margin:44px 0}.task-buttons{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.task-buttons button,.quiz button{min-height:44px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);font-weight:750;padding:10px 12px;cursor:pointer}.task-buttons button.active{background:var(--accent);color:white;border-color:transparent}.diagnosis{display:grid;grid-template-columns:1fr 1fr;gap:14px}.diag-card{padding:18px;border-radius:18px;border:1px solid var(--line);background:var(--panel2)}.diag-card b{display:block;margin-bottom:6px}.diag-card span{color:var(--muted)}
+    .quiz{padding:22px;margin:44px 0}.q{padding:16px 0;border-bottom:1px solid var(--line)}.q:last-child{border-bottom:0}.choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.choice.correct{border-color:var(--accent2);background:color-mix(in oklab,var(--accent2) 15%,var(--panel))}.choice.wrong{border-color:var(--hot);background:color-mix(in oklab,var(--hot) 12%,var(--panel))}.feedback{margin-top:8px;color:var(--muted);min-height:1.3em}.source{padding:22px;margin:44px 0 60px}.source details{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}.source summary{cursor:pointer;font-weight:800}.contact{width:100%;border-radius:16px;border:1px solid var(--line);margin-top:14px}
+    footer{padding:20px 0 44px;color:var(--muted);font-size:13px}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:5px 9px;margin:3px;background:var(--panel)}
+    @media (max-width:880px){.hero,.sim-layout,.chapter,.diagnosis{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.flow-grid{grid-template-columns:1fr}.step::after{display:none}.equation{grid-template-columns:1fr 1fr}.poster img{min-height:280px}header{padding-top:28px}}
+    @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to explainer</a>
+  <header class="wrap">
+    <div class="eyebrow">Interactive reading guide · Kimi open-model presentation</div>
+    <h1>The talk is really about a scaling stack.</h1>
+    <p class="lead">The presenter’s core move is not “make one giant model.” It is: compound several efficiency levers so open models get more capable per token, per context window, per agent, and per layer.</p>
+  </header>
+
+  <main id="main" class="wrap">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-card">
+        <div>
+          <h2 id="hero-title">One sentence version</h2>
+          <p class="thesis">Open models reach frontier quality when <mark>scaling becomes multidimensional</mark>: better priors, longer working memory, parallel agents, multimodal pretraining, and redesigned architecture.</p>
+        </div>
+        <div class="grid" aria-label="The three explicit dimensions in the talk">
+          <div class="mini"><b>Token efficiency</b><span>Shift the loss curve left: get more learning out of the same scarce high-quality data.</span></div>
+          <div class="mini"><b>Long context</b><span>Let the model use more of the past, so hard tasks can unfold across larger codebases or trajectories.</span></div>
+          <div class="mini"><b>Agent swarms</b><span>Increase task capacity by decomposing work across specialized sub-agents.</span></div>
+        </div>
+        <p class="note">Grounding: generated from the downloaded talk audio transcript and extracted slide frames. Some names in the auto-transcript are normalized, e.g. “agent swarms,” “Kimi K2.5,” “MuonClip.”</p>
+      </div>
+      <figure class="poster hero-card" aria-label="Presentation slide screenshot">
+        <img src="assets/strategy.jpg" alt="Slide titled Kimi Scaling Strategy with three scaling dimensions" />
+        <figcaption class="cap">The opening slide frames the talk as three dimensions of scaling, then later adds multimodal pretraining and attention residuals.</figcaption>
+      </figure>
+    </section>
+
+    <section class="sim" aria-labelledby="sim-title">
+      <h2 id="sim-title">Play with the argument</h2>
+      <p class="lead">This is a teaching model, not a benchmark. Move the sliders and watch why one lever is not enough.</p>
+      <div class="sim-layout">
+        <div class="panel" aria-label="Scaling lever controls">
+          <div class="control"><label for="token">Token efficiency<span class="sub">Optimizers/architecture make each data token count more.</span></label><output class="val" id="tokenVal">1.4×</output><input id="token" type="range" min="1" max="2.5" step="0.1" value="1.4" /></div>
+          <div class="control"><label for="context">Useful context<span class="sub">More past information remains usable for long tasks.</span></label><output class="val" id="contextVal">2.0×</output><input id="context" type="range" min="1" max="5" step="0.25" value="2" /></div>
+          <div class="control"><label for="agents">Parallel agents<span class="sub">Orchestration turns one solver into a coordinated search process.</span></label><output class="val" id="agentsVal">4</output><input id="agents" type="range" min="1" max="64" step="1" value="4" /></div>
+          <div class="control"><label for="depth">Depth/architecture gain<span class="sub">Attention residuals and similar changes improve layer-to-layer computation.</span></label><output class="val" id="depthVal">1.2×</output><input id="depth" type="range" min="1" max="1.6" step="0.05" value="1.2" /></div>
+        </div>
+        <div class="panel" aria-live="polite">
+          <h3>Compounded capability proxy</h3>
+          <p class="note">The talk repeatedly returns to this pattern: a small efficiency gain can matter because it multiplies with other gains at scale.</p>
+          <div class="equation">
+            <div class="factor"><div class="n" id="f1">1.4×</div><small>stronger prior / token use</small></div>
+            <div class="factor"><div class="n" id="f2">2.0×</div><small>working memory</small></div>
+            <div class="factor"><div class="n" id="f3">4</div><small>parallel search paths</small></div>
+            <div class="factor"><div class="n" id="f4">1.2×</div><small>layer efficiency</small></div>
+          </div>
+          <div class="bar-wrap" aria-hidden="true"><div class="bar" id="bar"></div></div>
+          <div class="readout"><span>Relative search/capacity score</span><strong id="score">13.4×</strong></div>
+          <div class="bottleneck" id="bottleneck">Current bottleneck: agents are still near single-agent mode; orchestration is not doing much yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapters" aria-labelledby="chapters-title">
+      <h2 id="chapters-title">Walk through the presentation</h2>
+      <div class="tabs" role="tablist" aria-label="Presentation chapters">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="c-token" id="t-token">1 · Token efficiency</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="c-linear" id="t-linear">2 · Kimi Linear</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="c-swarm" id="t-swarm">3 · Agent swarms</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="c-vision" id="t-vision">4 · Vision + text</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="c-residual" id="t-residual">5 · Attention residuals</button>
+      </div>
+
+      <article class="chapter active" id="c-token" role="tabpanel" aria-labelledby="t-token">
+        <img src="assets/token.jpg" alt="Slide about Muon token efficiency" />
+        <div><span class="tag">Lever 1 · better learning per token</span><h3>Token efficiency is not just cheaper training. It raises the ceiling when high-quality data is scarce.</h3><p>The speaker uses scaling laws to make a data-wall argument: if you only have a finite amount of high-quality data, a 2× token-efficiency improvement behaves like having much more data. This is why the talk treats optimizers like MuonClip as capability work, not mere infrastructure work.</p><ul><li>Claim pattern: shift the loss curve left.</li><li>Technical snag: Muon-style training can create huge attention logits and divergence.</li><li>Fix presented: QK-Clip constrains query/key magnitudes while preserving training loss progress.</li></ul><div class="quote">Mental model: “same tokens, better extraction.”</div></div>
+      </article>
+
+      <article class="chapter" id="c-linear" role="tabpanel" aria-labelledby="t-linear">
+        <img src="assets/linear.jpg" alt="Slide about Kimi Linear attention architecture" />
+        <div><span class="tag">Lever 2 · longer useful memory</span><h3>Kimi Linear tries to keep the long-context advantage of attention without paying full attention cost everywhere.</h3><p>The talk contrasts Transformers with LSTMs: Transformers improve as the token index grows because they can use long-range context. Kimi Linear is presented as a way to scale that benefit more efficiently by mixing linear-attention layers with full-attention layers.</p><ul><li>Kimi Delta Attention adds finer-grained decay to memory.</li><li>The recipe mixes linear attention and full attention, rather than replacing everything blindly.</li><li>The claimed target is strong short-context and long-context performance with better efficiency.</li></ul><div class="quote">Mental model: “not all layers need the expensive memory mechanism.”</div></div>
+      </article>
+
+      <article class="chapter" id="c-swarm" role="tabpanel" aria-labelledby="t-swarm">
+        <img src="assets/swarm.jpg" alt="Slide with agent swarm orchestrator and sub-agents" />
+        <div><span class="tag">Lever 3 · parallel task capacity</span><h3>Agent swarms make scaling about organization, not only model size.</h3><p>The orchestrator decomposes tasks, assigns sub-agents, collects results, and can repeat. The analogy in the talk is a company: one CEO-like coordinator plus specialized roles. The real research problem is avoiding degenerate behavior.</p><ul><li>Instantiation reward: prevent collapse back into a single serial agent.</li><li>Finish reward: prevent meaningless spawning where sub-tasks are opened but not completed.</li><li>Outcome reward: keep the whole system aligned to the final task.</li></ul><div class="quote">Mental model: “scale the search process, but make the spawned work finishable.”</div></div>
+      </article>
+
+      <article class="chapter" id="c-vision" role="tabpanel" aria-labelledby="t-vision">
+        <img src="assets/vision.jpg" alt="Slide about Kimi K2.5 vision text joint pretraining" />
+        <div><span class="tag">Integration · multimodal from day one</span><h3>Kimi K2.5 is framed as early-fusion vision/text training, not vision bolted onto a text model.</h3><p>The presentation argues that if vision and text are merged from the start, the modalities can share representation space and reinforce each other. The surprising claim is bidirectional transfer: vision tasks can improve text performance, and strong text training can improve vision after alignment.</p><ul><li>Late fusion: add visual ability after a text base exists.</li><li>Early fusion: train vision and text together from the beginning.</li><li>The talk links this to emergent visual design and coding capabilities.</li></ul><div class="quote">Mental model: “don’t attach eyes later; train the brain with eyes and language together.”</div></div>
+      </article>
+
+      <article class="chapter" id="c-residual" role="tabpanel" aria-labelledby="t-residual">
+        <img src="assets/residual.jpg" alt="Slide introducing attention residuals" />
+        <div><span class="tag">Next architecture · depth dimension</span><h3>Attention residuals ask: what if depth had attention, not just fixed residual addition?</h3><p>The talk borrows an analogy: residual connections are like an LSTM rotated 90 degrees, operating over depth instead of time. Attention residuals generalize that idea by attending over previous hidden states/layers, with block variants to reduce overhead.</p><ul><li>Standard residual: combine the previous layer with the current layer’s transformation.</li><li>Attention residual: aggregate across multiple previous hidden states.</li><li>The speaker claims a 24% token-efficiency improvement in their scaling-law result.</li></ul><div class="quote">Mental model: “make depth selective instead of blindly additive.”</div></div>
+      </article>
+    </section>
+
+    <section class="flow" aria-labelledby="flow-title">
+      <h2 id="flow-title">The talk’s logic as a chain</h2>
+      <div class="flow-grid">
+        <div class="step"><span class="k">Motive</span><b>Open models should be great</b><span>Openness matters because deployment and weights are accessible, but quality has to reach frontier level.</span></div>
+        <div class="step"><span class="k">Constraint</span><b>Data and compute are finite</b><span>Scaling tokens helps, but high-quality data is scarce and long-context compute can be expensive.</span></div>
+        <div class="step"><span class="k">Move</span><b>Improve each multiplier</b><span>Optimizers, attention variants, agent orchestration, and modality fusion each shift one bottleneck.</span></div>
+        <div class="step"><span class="k">Result</span><b>Capabilities compound</b><span>Stable pretraining plus multiple efficiency gains can produce stronger models and new behaviors.</span></div>
+        <div class="step"><span class="k">Claim</span><b>Keep scaling, but wider</b><span>Future scaling will add new dimensions; agent swarms are presented as one step, not the end.</span></div>
+      </div>
+    </section>
+
+    <section class="tasks" aria-labelledby="tasks-title">
+      <h2 id="tasks-title">Diagnose which lever matters</h2>
+      <p class="lead">Pick a task. The artifact maps it to the presentation’s scaling dimensions.</p>
+      <div class="task-buttons" role="group" aria-label="Example tasks">
+        <button data-task="code" class="active">Understand a whole codebase</button>
+        <button data-task="report">Write a 100-page literature review</button>
+        <button data-task="visual">Turn a video into a website</button>
+        <button data-task="frontier">Improve base-model loss under data limits</button>
+      </div>
+      <div class="diagnosis" aria-live="polite">
+        <div class="diag-card"><b id="diagLever">Primary lever: long context + Kimi Linear</b><span id="diagWhy">A codebase task needs a model to keep many files, dependencies, and decisions in working memory without full-attention cost exploding.</span></div>
+        <div class="diag-card"><b id="diagTrap">Failure mode to watch</b><span id="diagFix">If context is long but retrieval/selection is poor, the model carries more tokens without using them well.</span></div>
+      </div>
+    </section>
+
+    <section class="quiz" aria-labelledby="quiz-title">
+      <h2 id="quiz-title">Retrieval check</h2>
+      <div class="q" data-answer="b"><b>1. Why does token efficiency matter beyond saving money?</b><div class="choices"><button class="choice" data-choice="a">It removes the need for data.</button><button class="choice" data-choice="b">It can raise capability when high-quality data is limited.</button><button class="choice" data-choice="c">It only improves inference speed.</button></div><div class="feedback"></div></div>
+      <div class="q" data-answer="c"><b>2. What problem does the finish reward address in agent swarms?</b><div class="choices"><button class="choice" data-choice="a">The model refuses to spawn agents.</button><button class="choice" data-choice="b">The model uses too much GPU memory.</button><button class="choice" data-choice="c">The model spawns sub-tasks that are not meaningfully completed.</button></div><div class="feedback"></div></div>
+      <div class="q" data-answer="a"><b>3. What is the cleanest summary of attention residuals?</b><div class="choices"><button class="choice" data-choice="a">Use attention across previous hidden states/layers instead of only fixed residual addition.</button><button class="choice" data-choice="b">Remove residual connections completely.</button><button class="choice" data-choice="c">Make context windows shorter.</button></div><div class="feedback"></div></div>
+    </section>
+
+    <section class="source" aria-labelledby="source-title">
+      <h2 id="source-title">Source map and caveats</h2>
+      <p>This artifact is a structured teaching interpretation of the presentation, based on the local audio transcript and selected slide screenshots. It does not independently verify every benchmark or performance claim; when numbers appear, they are presented as claims from the talk.</p>
+      <p style="margin-top:10px"><span class="pill">MuonClip / QK-Clip</span><span class="pill">Kimi Linear</span><span class="pill">agent swarms</span><span class="pill">Kimi K2.5 early fusion</span><span class="pill">attention residuals</span></p>
+      <details><summary>Show extracted presentation frame contact sheet</summary><img class="contact" src="assets/contact-sheet.jpg" alt="Contact sheet of extracted slide frames from the presentation" /></details>
+    </section>
+  </main>
+  <footer class="wrap">Built as a one-concept explainer: the presentation’s “scaling stack” argument. Keyboard: tab through controls and chapter tabs.</footer>
+
+  <script>
+    const $ = (s, r=document) => r.querySelector(s); const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+    const controls = ['token','context','agents','depth'].map(id => $('#'+id));
+    function fmt(x){ return Number(x).toFixed(x>=10?0:1); }
+    function update(){
+      const token = +$('#token').value, context = +$('#context').value, agents = +$('#agents').value, depth = +$('#depth').value;
+      $('#tokenVal').textContent = token.toFixed(1)+'×'; $('#contextVal').textContent = context.toFixed(context%1?2:1)+'×'; $('#agentsVal').textContent = agents; $('#depthVal').textContent = depth.toFixed(2).replace(/0$/,'')+'×';
+      $('#f1').textContent = token.toFixed(1)+'×'; $('#f2').textContent = context.toFixed(context%1?2:1)+'×'; $('#f3').textContent = agents; $('#f4').textContent = depth.toFixed(2).replace(/0$/,'')+'×';
+      const score = token * context * Math.sqrt(agents) * depth; $('#score').textContent = fmt(score)+'×'; $('#bar').style.width = Math.min(100, 8 + score*4.2)+'%';
+      let msg = 'Current bottleneck: the stack is balanced; gains compound instead of piling onto one weak link.';
+      if(token < 1.25) msg = 'Current bottleneck: token efficiency is low; more data helps, but the curve has not shifted left.';
+      else if(context < 1.6) msg = 'Current bottleneck: useful context is short; agents may not sustain long trajectories or large codebases.';
+      else if(agents < 3) msg = 'Current bottleneck: agents are still near single-agent mode; orchestration is not doing much yet.';
+      else if(depth < 1.1) msg = 'Current bottleneck: depth computation is conventional; architecture is not adding much extra efficiency.';
+      $('#bottleneck').textContent = msg;
+    }
+    controls.forEach(c => c.addEventListener('input', update)); update();
+
+    $$('.tab').forEach(tab => tab.addEventListener('click', () => {
+      $$('.tab').forEach(t => t.setAttribute('aria-selected','false')); tab.setAttribute('aria-selected','true');
+      $$('.chapter').forEach(c => c.classList.remove('active')); $('#'+tab.getAttribute('aria-controls')).classList.add('active');
+    }));
+
+    const taskData = {
+      code:['Primary lever: long context + Kimi Linear','A codebase task needs a model to keep many files, dependencies, and decisions in working memory without full-attention cost exploding.','Failure mode to watch','If context is long but retrieval/selection is poor, the model carries more tokens without using them well.'],
+      report:['Primary lever: agent swarms','A literature review decomposes naturally: search sources, summarize clusters, fact-check, synthesize, and edit in parallel.','Failure mode to watch','Without finish rewards or good orchestration, agents can spawn busywork rather than completed sub-results.'],
+      visual:['Primary lever: early-fusion vision + text','Turning a video into code needs visual perception, language planning, and frontend generation in one shared representation space.','Failure mode to watch','Late-bolted vision may describe pixels but fail to connect them to design/code decisions.'],
+      frontier:['Primary lever: token efficiency + attention residuals','When quality data is scarce, better optimizers and layer architecture act like extracting more signal from the same corpus.','Failure mode to watch','An efficiency trick that destabilizes training can erase the gain; the talk emphasizes clipping and stable curves.']
+    };
+    $$('.task-buttons button').forEach(b => b.addEventListener('click', () => { $$('.task-buttons button').forEach(x => x.classList.remove('active')); b.classList.add('active'); const d=taskData[b.dataset.task]; $('#diagLever').textContent=d[0]; $('#diagWhy').textContent=d[1]; $('#diagTrap').textContent=d[2]; $('#diagFix').textContent=d[3]; }));
+
+    $$('.choice').forEach(btn => btn.addEventListener('click', () => { const q=btn.closest('.q'); const ok=btn.dataset.choice===q.dataset.answer; $$('.choice', q).forEach(c => c.classList.remove('correct','wrong')); btn.classList.add(ok?'correct':'wrong'); $('.feedback', q).textContent = ok ? 'Correct.' : 'Not quite. Re-read the chapter above; the key distinction is the bottleneck being addressed.'; }));
+  </script>
+</body>
+</html>
