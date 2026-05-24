@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Liquid Glass: the trick is adaptive separation</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg: #f4f2ed;
+    --ink: #161719;
+    --muted: #5b616b;
+    --line: rgba(22,23,25,.16);
+    --panel: rgba(255,255,255,.58);
+    --panel-strong: rgba(255,255,255,.82);
+    --accent: #0a84ff;
+    --accent-2:#7c3aed;
+    --good:#0a7f54;
+    --warn:#b45309;
+    --shadow: 0 24px 70px rgba(29,38,53,.18), 0 2px 10px rgba(29,38,53,.08);
+    --radius: 28px;
+    --blur: 18px;
+    --tint: .48;
+    --lens: 12px;
+    --range: 1.12;
+    --shadow-strength: .24;
+    --motion: 1;
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#080a0d; --ink:#f4f7fb; --muted:#a8b0bc; --line:rgba(255,255,255,.18); --panel:rgba(24,27,32,.55); --panel-strong:rgba(33,36,42,.86); --shadow:0 24px 80px rgba(0,0,0,.45), 0 2px 10px rgba(0,0,0,.35); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    :root{ --motion:0; }
+    *,*::before,*::after{ animation-duration:.001ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.001ms!important; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); line-height:1.45; overflow-x:hidden;}
+  button,input{font:inherit}
+  button{min-height:44px; cursor:pointer}
+  .page{min-height:100svh; padding:18px; position:relative;}
+  .page::before{content:""; position:fixed; inset:-20%; pointer-events:none; z-index:-2; background:
+    radial-gradient(circle at 18% 18%, color-mix(in oklch, var(--accent), transparent 72%), transparent 26%),
+    radial-gradient(circle at 82% 12%, color-mix(in oklch, #ff375f, transparent 74%), transparent 28%),
+    radial-gradient(circle at 75% 80%, color-mix(in oklch, #34c759, transparent 76%), transparent 32%);
+    filter:saturate(1.2);
+  }
+  .noise{position:fixed; inset:0; z-index:-1; opacity:.22; pointer-events:none; background-image:linear-gradient(115deg, transparent 0 46%, rgba(255,255,255,.2) 47% 49%, transparent 50% 100%), repeating-linear-gradient(90deg, rgba(0,0,0,.04) 0 1px, transparent 1px 28px);}
+  header{max-width:1180px; margin:0 auto 16px; display:grid; grid-template-columns:1.1fr .9fr; gap:18px; align-items:stretch;}
+  .hero,.card,.lab,.quiz,.sourcebox{border:1px solid var(--line); border-radius:var(--radius); background:var(--panel); backdrop-filter: blur(18px) saturate(1.25); -webkit-backdrop-filter: blur(18px) saturate(1.25); box-shadow:var(--shadow);}
+  .hero{padding:clamp(24px,5vw,54px); min-height:430px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; position:relative;}
+  .eyebrow{letter-spacing:.12em; text-transform:uppercase; font-size:.76rem; color:var(--muted); font-weight:700;}
+  h1{font-size:clamp(2.3rem,6vw,5.8rem); line-height:.92; letter-spacing:-.07em; margin:.15em 0 .25em; text-wrap:balance;}
+  h2{font-size:clamp(1.5rem,3vw,2.6rem); line-height:1; letter-spacing:-.04em; margin:0 0 12px; text-wrap:balance;}
+  h3{font-size:1.05rem; margin:0 0 6px; letter-spacing:-.015em}
+  p{margin:0; color:var(--muted); max-width:70ch}
+  .lede{font-size:clamp(1.05rem,1.7vw,1.35rem); color:color-mix(in oklch, var(--ink), var(--muted) 32%)}
+  .notblur{display:inline-block; margin-top:18px; padding:10px 14px; border-radius:999px; background:color-mix(in oklch, var(--accent), transparent 88%); color:color-mix(in oklch, var(--accent), var(--ink) 28%); font-weight:750; border:1px solid color-mix(in oklch, var(--accent), transparent 70%)}
+  .phone{padding:18px; min-height:430px; position:relative; overflow:hidden; border-radius:42px; background:linear-gradient(145deg, rgba(255,255,255,.3), rgba(255,255,255,.08));}
+  .wallpaper{position:absolute; inset:0; background:
+    radial-gradient(circle at 24% 20%, #ffcc00 0 9%, transparent 10%),
+    radial-gradient(circle at 58% 18%, #ff3b30 0 8%, transparent 9%),
+    radial-gradient(circle at 82% 40%, #34c759 0 11%, transparent 12%),
+    radial-gradient(circle at 30% 58%, #0a84ff 0 14%, transparent 15%),
+    radial-gradient(circle at 70% 78%, #bf5af2 0 13%, transparent 14%),
+    linear-gradient(135deg,#f6e58d,#ffb199 36%,#7ec8ff 68%,#d8b4fe); filter:saturate(1.25);}
+  .phone-content{position:relative; display:grid; gap:13px; grid-template-columns:repeat(3,1fr); padding-top:22px;}
+  .app{height:74px; border-radius:22px; background:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.5); display:grid; place-items:center; font-weight:800; color:rgba(0,0,0,.58)}
+  .glassbar{position:absolute; left:18px; right:18px; bottom:18px; min-height:82px; border-radius:34px; display:flex; align-items:center; justify-content:space-around; isolation:isolate; overflow:hidden; color:white; box-shadow:0 18px 45px rgba(0,0,0,var(--shadow-strength)); transform:translateZ(0);}
+  .glassbar::before{content:""; position:absolute; inset:0; z-index:-2; background:rgba(255,255,255,var(--tint)); backdrop-filter:blur(var(--blur)) saturate(1.8) contrast(var(--range)); -webkit-backdrop-filter:blur(var(--blur)) saturate(1.8) contrast(var(--range));}
+  .glassbar::after{content:""; position:absolute; inset:-18px; z-index:-1; background:radial-gradient(circle at var(--light-x, 28%) 0%, rgba(255,255,255,.9), transparent 28%), linear-gradient(90deg, transparent 0 10%, rgba(255,255,255,.36) 18%, transparent 31% 65%, rgba(255,255,255,.28) 76%, transparent 88%); filter:blur(calc(var(--lens) * .22)); transform:translateX(calc((var(--lens) - 10px) * .45)); opacity:.72; mix-blend-mode:screen;}
+  .glass-icon{width:52px;height:52px;border-radius:18px;display:grid;place-items:center;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 1px rgba(255,255,255,.45); font-size:1.05rem; font-weight:800; color:#fff; text-shadow:0 1px 8px rgba(0,0,0,.28)}
+  main{max-width:1180px; margin:0 auto; display:grid; gap:18px;}
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .card{padding:22px; min-height:180px;}
+  .card strong{color:var(--ink)}
+  .interaction{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .lab{padding:22px; overflow:hidden;}
+  .controls{display:grid; gap:16px; margin-top:16px;}
+  label{display:grid; gap:7px; color:var(--ink); font-weight:720;}
+  label span{display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-weight:650; font-size:.9rem;}
+  input[type="range"]{width:100%; accent-color:var(--accent); min-height:36px;}
+  .readout{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px;}
+  .metric{padding:12px; border-radius:18px; background:var(--panel-strong); border:1px solid var(--line)}
+  .metric b{display:block; font-size:1.4rem; letter-spacing:-.03em}
+  .metric small{color:var(--muted)}
+  .stack{padding:22px; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.08)); border:1px solid var(--line); min-height:430px; display:flex; flex-direction:column; justify-content:center; gap:10px;}
+  .layer{padding:16px 18px; border-radius:22px; border:1px solid var(--line); background:var(--panel); transition:transform calc(.35s * var(--motion)) ease, opacity calc(.35s * var(--motion)) ease;}
+  .layer:nth-child(1){transform:translateX(0)} .layer:nth-child(2){transform:translateX(22px)} .layer:nth-child(3){transform:translateX(44px)} .layer:nth-child(4){transform:translateX(66px)}
+  .layer em{font-style:normal; color:var(--accent); font-weight:800}
+  .tabs{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0;}
+  .tabs button{border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:999px; padding:8px 12px; min-height:44px;}
+  .tabs button[aria-pressed="true"]{background:var(--ink); color:var(--bg)}
+  .quiz{padding:22px;}
+  .choices{display:grid; gap:10px; margin-top:14px;}
+  .choice{width:100%; text-align:left; padding:14px 16px; border-radius:18px; border:1px solid var(--line); background:var(--panel-strong); color:var(--ink);}
+  .choice[aria-pressed="true"]{outline:3px solid color-mix(in oklch, var(--accent), transparent 55%); border-color:var(--accent)}
+  .feedback{margin-top:14px; padding:14px; border-radius:18px; background:color-mix(in oklch, var(--accent), transparent 90%); border:1px solid color-mix(in oklch, var(--accent), transparent 72%); color:var(--ink); display:none;}
+  .feedback.show{display:block;}
+  .sourcebox{padding:18px; font-size:.92rem;}
+  .sourcebox a{color:var(--accent)}
+  .footer{padding:8px 2px 24px; color:var(--muted); font-size:.92rem;}
+  @media (max-width:900px){header,.interaction{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.hero,.phone{min-height:auto}.phone{height:440px}.layer:nth-child(n){transform:none}.readout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="noise" aria-hidden="true"></div>
+<div class="page">
+  <header>
+    <section class="hero" aria-labelledby="title">
+      <div>
+        <div class="eyebrow">One concept: adaptive separation</div>
+        <h1 id="title">Liquid Glass is not just “blur, but prettier.”</h1>
+        <p class="lede">The elegant idea is that the UI becomes a thin, system-rendered material layer that constantly earns legibility: it samples what is behind it, bends/tints/separates as needed, and stays out of the content’s way.</p>
+        <span class="notblur">Core insight: transparency is allowed only when hierarchy remains clear.</span>
+      </div>
+    </section>
+    <aside class="phone" aria-label="A simplified glass toolbar over colorful content">
+      <div class="wallpaper" aria-hidden="true"></div>
+      <div class="phone-content" aria-hidden="true">
+        <div class="app">A</div><div class="app">B</div><div class="app">C</div>
+        <div class="app">D</div><div class="app">E</div><div class="app">F</div>
+        <div class="app">G</div><div class="app">H</div><div class="app">I</div>
+      </div>
+      <div class="glassbar"><div class="glass-icon">⌂</div><div class="glass-icon">⌕</div><div class="glass-icon">＋</div><div class="glass-icon">◎</div></div>
+    </aside>
+  </header>
+
+  <main>
+    <section class="grid" aria-label="Three misconceptions">
+      <article class="card"><h2>1. It is optical, not decorative.</h2><p>Apple describes Liquid Glass as a “digital meta-material” that bends and shapes light, using lensing/refraction cues so floating controls still read as objects.</p></article>
+      <article class="card"><h2>2. It is adaptive, not fixed.</h2><p>The interesting part is not one CSS value. Apple says layers continuously adapt to what is behind them: shadows, tint, and dynamic range shift to keep controls legible.</p></article>
+      <article class="card"><h2>3. It is restrained, not everywhere.</h2><p>Apple’s own guidance says to reserve it for navigation floating above content and avoid “glass on glass,” because the whole trick collapses when hierarchy gets muddy.</p></article>
+    </section>
+
+    <section class="interaction" aria-label="Interactive rendering model">
+      <div class="lab">
+        <div class="eyebrow">Try the rendering idea</div>
+        <h2>Move from cheap blur toward adaptive material.</h2>
+        <p>This is a browser approximation, not Apple’s renderer. The lesson is the layer stack: blur alone reduces detail; adaptive tint, contrast, highlight, and shadow restore separation.</p>
+        <div class="controls">
+          <label>Background complexity <span><output id="complexityOut">High</output></span><input id="complexity" type="range" min="0" max="100" value="70" /></label>
+          <label>Glass thickness / tint <span><output id="tintOut">48%</output></span><input id="tint" type="range" min="12" max="78" value="48" /></label>
+          <label>Lensing / highlight strength <span><output id="lensOut">12</output></span><input id="lens" type="range" min="0" max="28" value="12" /></label>
+          <label>Separation shadow <span><output id="shadowOut">24%</output></span><input id="shadow" type="range" min="0" max="60" value="24" /></label>
+        </div>
+        <div class="readout" aria-live="polite">
+          <div class="metric"><b id="legibility">Good</b><small>Estimated legibility of controls</small></div>
+          <div class="metric"><b id="cost">Medium</b><small>Estimated compositing work</small></div>
+        </div>
+      </div>
+      <div class="phone" id="demoPhone" aria-label="Live demo of the glass controls">
+        <div class="wallpaper" id="wallpaper" aria-hidden="true"></div>
+        <div class="phone-content" aria-hidden="true"><div class="app">Mail</div><div class="app">Map</div><div class="app">Cam</div><div class="app">Fit</div><div class="app">Cal</div><div class="app">Doc</div><div class="app">Pay</div><div class="app">Msg</div><div class="app">TV</div></div>
+        <div class="glassbar"><div class="glass-icon">⌂</div><div class="glass-icon">⌕</div><div class="glass-icon">＋</div><div class="glass-icon">◎</div></div>
+      </div>
+    </section>
+
+    <section class="interaction" aria-label="Layer model">
+      <div class="stack" id="stack">
+        <div class="layer"><h3><em>Content layer</em></h3><p>Your photos, maps, lists, video, canvas. It should remain the star.</p></div>
+        <div class="layer"><h3><em>Sampling layer</em></h3><p>The material reacts to what passes underneath instead of wearing one permanent light/dark costume.</p></div>
+        <div class="layer"><h3><em>Optics layer</em></h3><p>Lensing, highlight, refraction-like distortion, and tint make the glass read as a surface.</p></div>
+        <div class="layer"><h3><em>Separation layer</em></h3><p>Shadows and dynamic range shifts keep labels and buttons readable.</p></div>
+      </div>
+      <div class="quiz">
+        <div class="eyebrow">Predict → reveal</div>
+        <h2>Which implementation is closest to the Liquid Glass idea?</h2>
+        <p>Pick before revealing. This is the misconception check.</p>
+        <div class="choices" role="group" aria-label="Quiz answers">
+          <button class="choice" data-answer="0">A. Put backdrop-filter blur on every card so the whole app looks glassy.</button>
+          <button class="choice" data-answer="1">B. Use one translucent navigation layer, then let the system/material adapt tint, shadow, and lensing over changing content.</button>
+          <button class="choice" data-answer="2">C. Export a PNG of a shiny panel and reuse it everywhere for consistency.</button>
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+    </section>
+
+    <section class="sourcebox">
+      <strong>Source note.</strong> Claims here are grounded in Apple’s WWDC25 “Meet Liquid Glass” transcript and Apple developer docs for Liquid Glass / adopting Liquid Glass / HIG Materials. Apple says Liquid Glass bends, shapes, and concentrates light in real time; adapts to size and environment; continuously changes layers for legibility; and should be reserved for navigation layers, avoiding glass-on-glass. This artifact does not claim to reproduce Apple’s private renderer or performance pipeline.
+      <br><br>
+      Sources: <a href="https://developer.apple.com/videos/play/wwdc2025/219/">Meet Liquid Glass — WWDC25</a> · <a href="https://developer.apple.com/documentation/technologyoverviews/liquid-glass">Liquid Glass overview</a> · <a href="https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass">Adopting Liquid Glass</a> · <a href="https://developer.apple.com/design/human-interface-guidelines/materials">HIG Materials</a>
+    </section>
+    <div class="footer">Takeaway: the special thing is not “glassmorphism.” It is an OS-level material whose job is to be translucent only as far as legibility, hierarchy, and motion can support.</div>
+  </main>
+</div>
+<script>
+(function(){
+  const root = document.documentElement;
+  const $ = (id)=>document.getElementById(id);
+  const complexity=$('complexity'), tint=$('tint'), lens=$('lens'), shadow=$('shadow');
+  function labelComplexity(v){ return v < 34 ? 'Low' : v < 67 ? 'Mixed' : 'High'; }
+  function update(){
+    const c=+complexity.value, t=+tint.value, l=+lens.value, s=+shadow.value;
+    root.style.setProperty('--tint', (t/100).toFixed(2));
+    root.style.setProperty('--lens', l+'px');
+    root.style.setProperty('--shadow-strength', (s/100).toFixed(2));
+    root.style.setProperty('--range', (1 + (l/95) + (s/240)).toFixed(2));
+    root.style.setProperty('--light-x', (18 + l*2.4)+'%');
+    $('complexityOut').textContent=labelComplexity(c);
+    $('tintOut').textContent=t+'%'; $('lensOut').textContent=l; $('shadowOut').textContent=s+'%';
+    const leg = (t*.42 + l*1.05 + s*.85) - c*.38;
+    $('legibility').textContent = leg > 48 ? 'Excellent' : leg > 25 ? 'Good' : leg > 8 ? 'Fragile' : 'Muddy';
+    const work = (18 + c*.18 + t*.12 + l*.9 + s*.25);
+    $('cost').textContent = work > 62 ? 'Higher' : work > 39 ? 'Medium' : 'Lower';
+    const sat=1+(c/130); const scale= 100 + c*.7;
+    $('wallpaper').style.filter=`saturate(${sat}) contrast(${1+c/420})`;
+    $('wallpaper').style.backgroundSize=`${scale}% ${scale}%`;
+  }
+  [complexity,tint,lens,shadow].forEach(el=>el.addEventListener('input',update)); update();
+
+  const feedback=$('feedback');
+  document.querySelectorAll('.choice').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.choice').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      const a=btn.dataset.answer;
+      const copy={
+        0:'Close aesthetically, wrong conceptually. Blur everywhere makes the content and controls compete; Apple explicitly warns against muddying hierarchy and glass-on-glass.',
+        1:'Yes. That is the elegant part: a restrained navigation layer plus adaptive optics/separation so transparency does not destroy legibility.',
+        2:'No. A static shine can look glossy, but it cannot respond to the content underneath, device motion, focus, accessibility settings, or size.'
+      };
+      feedback.textContent=copy[a]; feedback.classList.add('show');
+    });
+  });
+})();
+</script>
+</body>
+</html>
