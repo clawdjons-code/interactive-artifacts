@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Scaling Stack — five levers behind open frontier models</title>
+<meta name="description" content="An interactive walk through the multi-dimensional scaling argument from the Kimi K2.5 / attention-residuals talk: token efficiency, long context, agent swarms, multimodal pretraining, and attention residuals." />
+<style>
+  :root {
+    --bg:        #0d0e10;
+    --bg-soft:   #16181c;
+    --bg-card:   #1a1d22;
+    --ink:       #ece8e0;
+    --ink-dim:   #a8a89c;
+    --ink-faint: #6b6b66;
+    --rule:      #2a2d34;
+    --rule-soft: #1f2228;
+    --accent:    #eab464; /* amber */
+    --accent-2:  #7aa2c2; /* cool blue */
+    --bad:       #c87a7a;
+    --good:      #8fb079;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:        #f6f3ec;
+      --bg-soft:   #eee9df;
+      --bg-card:   #ffffff;
+      --ink:       #1c1d20;
+      --ink-dim:   #555550;
+      --ink-faint: #8a8a84;
+      --rule:      #d8d3c6;
+      --rule-soft: #e3dccd;
+      --accent:    #9a5d12;
+      --accent-2:  #2f5d80;
+      --bad:       #9c3030;
+      --good:      #4f6b2c;
+    }
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+  a:hover, a:focus-visible { color: var(--ink); border-color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
+
+  /* ---------- layout shell ---------- */
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+  header.site {
+    border-bottom: 1px solid var(--rule);
+    padding: 22px 0 18px;
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: saturate(140%) blur(8px);
+  }
+  header.site .wrap { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .brand {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .brand b { color: var(--ink); font-weight: 600; }
+  nav.chapters { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; }
+  nav.chapters a {
+    color: var(--ink-dim); border: none; padding: 4px 0;
+    border-bottom: 1px solid transparent;
+  }
+  nav.chapters a:hover, nav.chapters a:focus-visible { color: var(--ink); border-bottom-color: var(--accent); }
+
+  /* ---------- hero ---------- */
+  section.hero { padding: 80px 0 60px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 20px;
+  }
+  h1.title {
+    font-family: var(--serif);
+    font-size: clamp(34px, 5.5vw, 60px);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    margin: 0 0 24px;
+    font-weight: 500;
+  }
+  h1.title em { font-style: italic; color: var(--accent); }
+  .lede {
+    font-size: clamp(17px, 1.7vw, 20px);
+    max-width: 62ch; color: var(--ink-dim); line-height: 1.55;
+    margin: 0 0 24px;
+  }
+  .lede strong { color: var(--ink); font-weight: 500; }
+  .hero-meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+    border-top: 1px solid var(--rule); padding-top: 18px; margin-top: 28px;
+    max-width: 720px;
+  }
+  .hero-meta span b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- section base ---------- */
+  section.bay { padding: 72px 0; border-bottom: 1px solid var(--rule); }
+  section.bay > .wrap > header { margin-bottom: 36px; max-width: 720px; }
+  h2.sect {
+    font-family: var(--serif); font-weight: 500;
+    font-size: clamp(26px, 3vw, 36px); line-height: 1.15;
+    margin: 0 0 10px; letter-spacing: -0.005em;
+  }
+  h2.sect .num {
+    font-family: var(--mono); font-size: 13px; color: var(--accent);
+    letter-spacing: 0.18em; display: block; margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .sect-lede { color: var(--ink-dim); max-width: 60ch; font-size: 16.5px; }
+
+  /* ---------- lever simulator ---------- */
+  .sim {
+    display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 32px;
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 28px;
+  }
+  @media (max-width: 860px) { .sim { grid-template-columns: 1fr; } }
+  .sim h3 {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-dim); margin: 0 0 16px; font-weight: 500;
+  }
+
+  .lever-list { display: flex; flex-direction: column; gap: 10px; }
+  .lever {
+    display: grid; grid-template-columns: 28px 1fr auto; gap: 14px; align-items: center;
+    background: var(--bg-card); border: 1px solid var(--rule);
+    padding: 14px 16px; border-radius: 3px; cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .lever:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--rule)); }
+  .lever[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--bg-card)); }
+  .lever .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1.5px solid var(--ink-faint);
+    background: transparent; transition: all 120ms;
+  }
+  .lever[aria-pressed="true"] .dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+  .lever .label {
+    font-family: var(--sans); font-size: 15px; color: var(--ink);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .lever .label .sub { font-size: 12.5px; color: var(--ink-dim); font-family: var(--mono); letter-spacing: 0.04em; }
+  .lever .gain {
+    font-family: var(--mono); font-size: 13px; color: var(--accent);
+    letter-spacing: 0.04em; white-space: nowrap;
+  }
+  .lever[aria-pressed="false"] .gain { color: var(--ink-faint); }
+
+  .readout {
+    background: var(--bg-card); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 22px; display: flex; flex-direction: column; gap: 16px;
+    align-self: start;
+  }
+  .readout .multiplier {
+    font-family: var(--serif); font-weight: 500;
+    font-size: 56px; line-height: 1; letter-spacing: -0.02em; color: var(--ink);
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .readout .multiplier .x { font-family: var(--mono); font-size: 22px; color: var(--accent); }
+  .readout .multiplier-label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .readout p.story {
+    font-size: 14px; color: var(--ink-dim); margin: 0; line-height: 1.55;
+    min-height: 4.5em;
+  }
+  .readout .reset {
+    background: transparent; border: 1px solid var(--rule);
+    color: var(--ink-dim); padding: 8px 12px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; cursor: pointer; border-radius: 3px;
+    transition: all 120ms;
+  }
+  .readout .reset:hover { color: var(--ink); border-color: var(--ink-dim); }
+
+  /* ---------- deep dives ---------- */
+  .deep-dive {
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px;
+    margin-top: 28px;
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 28px;
+  }
+  @media (max-width: 860px) { .deep-dive { grid-template-columns: 1fr; gap: 24px; } }
+  .deep-dive[hidden] { display: none; }
+  .dd-text h3 {
+    font-family: var(--serif); font-weight: 500; font-size: 22px; margin: 0 0 8px;
+  }
+  .dd-text .kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .dd-text p { color: var(--ink-dim); font-size: 15px; line-height: 1.6; margin: 0 0 14px; }
+  .dd-text p strong { color: var(--ink); font-weight: 500; }
+  .dd-text dl { margin: 18px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px 18px; }
+  .dd-text dt { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; padding-top: 2px; }
+  .dd-text dd { margin: 0; color: var(--ink); font-size: 14.5px; }
+  .dd-vis {
+    background: var(--bg-card); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 20px; display: flex; flex-direction: column; gap: 14px;
+    min-height: 280px;
+  }
+  .dd-vis figcaption {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+    color: var(--ink-dim); text-transform: uppercase;
+  }
+  .dd-vis .claim {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--accent); margin-top: auto;
+    border-top: 1px dashed var(--rule); padding-top: 12px;
+  }
+  .dd-vis .claim::before { content: "Claim from talk: "; color: var(--ink-faint); }
+  .dd-vis svg { width: 100%; height: auto; display: block; }
+  .dd-vis .controls { display: flex; gap: 12px; flex-wrap: wrap; }
+  .dd-vis .controls label { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  .dd-vis .controls input[type="range"] { accent-color: var(--accent); }
+
+  /* ---------- swarm interactive ---------- */
+  .swarm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 860px) { .swarm-grid { grid-template-columns: 1fr; } }
+  .swarm-card {
+    background: var(--bg-card); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 22px; display: flex; flex-direction: column; gap: 16px;
+  }
+  .swarm-card h3 { font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 0; }
+  .swarm-card .timeline { display: flex; flex-direction: column; gap: 6px; font-family: var(--mono); font-size: 12px; }
+  .swarm-card .step {
+    display: grid; grid-template-columns: 60px 1fr; gap: 12px; align-items: center;
+    padding: 6px 10px; border-radius: 3px;
+    background: var(--bg-soft); color: var(--ink-dim);
+    opacity: 0; transform: translateY(4px);
+    transition: opacity 220ms ease, transform 220ms ease;
+  }
+  .swarm-card .step.on { opacity: 1; transform: translateY(0); }
+  .swarm-card .step .t { color: var(--ink-faint); }
+  .swarm-card .step.active { color: var(--ink); background: color-mix(in srgb, var(--accent) 12%, var(--bg-soft)); }
+  .swarm-card .step.done { color: var(--good); }
+  .swarm-card .total {
+    margin-top: auto; padding-top: 12px; border-top: 1px dashed var(--rule);
+    display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px;
+    color: var(--ink-dim);
+  }
+  .swarm-card .total b { color: var(--ink); font-family: var(--mono); font-size: 16px; }
+  .swarm-controls {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    margin-top: 18px;
+  }
+  .btn {
+    background: var(--accent); color: #1b1305; border: 1px solid var(--accent);
+    padding: 10px 16px; border-radius: 3px; font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+    transition: all 120ms;
+  }
+  .btn:hover { filter: brightness(1.05); }
+  .btn.secondary { background: transparent; color: var(--ink-dim); border-color: var(--rule); }
+  .btn.secondary:hover { color: var(--ink); border-color: var(--ink-dim); }
+
+  /* ---------- failure mode quiz ---------- */
+  .quiz { background: var(--bg-soft); border: 1px solid var(--rule); border-radius: 4px; padding: 28px; margin-top: 28px; }
+  .quiz h3 { font-family: var(--serif); font-weight: 500; font-size: 22px; margin: 0 0 8px; }
+  .quiz .prompt {
+    font-family: var(--mono); font-size: 13.5px; color: var(--ink);
+    background: var(--bg-card); border-left: 3px solid var(--accent);
+    padding: 14px 16px; margin: 14px 0 18px; line-height: 1.6;
+    border-radius: 0 3px 3px 0;
+  }
+  .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 720px) { .quiz-options { grid-template-columns: 1fr; } }
+  .quiz-options button {
+    text-align: left; background: var(--bg-card);
+    border: 1px solid var(--rule); color: var(--ink);
+    padding: 14px 16px; border-radius: 3px; cursor: pointer;
+    font-family: var(--sans); font-size: 14.5px; line-height: 1.45;
+    transition: all 140ms;
+  }
+  .quiz-options button:hover { border-color: var(--ink-dim); }
+  .quiz-options button[data-state="correct"] { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--bg-card)); }
+  .quiz-options button[data-state="wrong"] { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--bg-card)); }
+  .quiz-options button[data-state="disabled"] { opacity: 0.5; cursor: default; }
+  .quiz-feedback {
+    margin-top: 14px; padding: 12px 14px; border-radius: 3px;
+    font-size: 14px; color: var(--ink-dim); border: 1px dashed var(--rule);
+    min-height: 1em;
+  }
+  .quiz-feedback[data-state="correct"] { color: var(--good); border-color: var(--good); }
+  .quiz-feedback[data-state="wrong"] { color: var(--bad); border-color: var(--bad); }
+
+  /* ---------- summary multiply ---------- */
+  .multiply-strip {
+    display: grid; grid-template-columns: repeat(5, 1fr) auto;
+    gap: 12px; align-items: stretch; margin-top: 8px;
+  }
+  @media (max-width: 860px) { .multiply-strip { grid-template-columns: repeat(2, 1fr); } }
+  .multiply-cell {
+    background: var(--bg-soft); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 18px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .multiply-cell .v { font-family: var(--serif); font-size: 28px; font-weight: 500; color: var(--ink); }
+  .multiply-cell .v .x { font-family: var(--mono); font-size: 16px; color: var(--accent); }
+  .multiply-cell .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+  .multiply-cell .n { font-size: 13.5px; color: var(--ink-dim); line-height: 1.45; }
+  .multiply-total {
+    background: color-mix(in srgb, var(--accent) 18%, var(--bg-soft));
+    border: 1px solid var(--accent); border-radius: 3px; padding: 18px;
+    display: flex; flex-direction: column; gap: 4px; justify-content: center; min-width: 120px;
+  }
+  .multiply-total .v { font-family: var(--serif); font-size: 34px; color: var(--accent); font-weight: 500; }
+  .multiply-total .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); }
+
+  /* ---------- caveat / footer ---------- */
+  footer.site { padding: 50px 0 80px; color: var(--ink-faint); font-size: 13.5px; }
+  footer.site .caveat {
+    border-left: 3px solid var(--accent); padding: 10px 16px;
+    background: var(--bg-soft); margin-bottom: 24px; color: var(--ink-dim);
+    font-family: var(--sans);
+  }
+  footer.site .caveat b { color: var(--ink); font-weight: 500; }
+  footer.site p { max-width: 70ch; margin: 0 0 10px; }
+  footer.site .meta { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; color: var(--ink-faint); }
+
+  /* ---------- tiny utility ---------- */
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 2px;
+    background: var(--bg-soft); color: var(--ink-dim); border: 1px solid var(--rule);
+  }
+  .pill.claim { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--rule)); }
+</style>
+</head>
+<body>
+
+<header class="site" role="banner">
+  <div class="wrap">
+    <div class="brand">An interactive read on <b>the scaling stack</b></div>
+    <nav class="chapters" aria-label="Sections">
+      <a href="#stack">Stack</a>
+      <a href="#lever-1">Tokens</a>
+      <a href="#lever-2">Context</a>
+      <a href="#lever-3">Swarms</a>
+      <a href="#lever-4">Multimodal</a>
+      <a href="#lever-5">Residuals</a>
+      <a href="#synthesis">Synthesis</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============== HERO ============== -->
+  <section class="hero" aria-labelledby="page-title">
+    <div class="wrap">
+      <p class="eyebrow">Scaling, reconsidered</p>
+      <h1 class="title" id="page-title">Scaling didn’t stop —<br/>it just <em>grew more dimensions</em>.</h1>
+      <p class="lede">
+        The Kimi team’s pitch is simple to state and harder to live with: bigger models and more tokens are
+        no longer the only knobs. Behind a single loss curve sit <strong>five compounding levers</strong> —
+        token efficiency, long context, agent swarms, multimodal pretraining, and a new kind of residual
+        connection. This is an interactive read on what each lever actually does, and why a frontier open
+        model has to pull on all of them at once.
+      </p>
+      <div class="hero-meta" aria-label="About this artifact">
+        <span><b>Source:</b> Kimi team conference talk on K2.5 &amp; attention residuals</span>
+        <span><b>Format:</b> 5 levers · interactive simulator · failure-mode quiz</span>
+        <span><b>Heads up:</b> all benchmark numbers are claims from the talk</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== STACK / SIMULATOR ============== -->
+  <section class="bay" id="stack" aria-labelledby="stack-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="stack-h"><span class="num">01 — The stack</span>Five levers, multiplied together.</h2>
+        <p class="sect-lede">
+          Toggle a lever to enable it. The readout shows the compound “token-efficiency multiplier” the talk
+          implies if you stack the levers together. The story panel rewrites itself based on what you’ve turned on.
+        </p>
+      </header>
+
+      <div class="sim" role="group" aria-labelledby="sim-h">
+        <div>
+          <h3 id="sim-h">Levers</h3>
+          <div class="lever-list" id="lever-list">
+            <!-- levers populated by JS for keyboard-friendliness and aria-pressed state -->
+          </div>
+        </div>
+        <div class="readout" aria-live="polite">
+          <div>
+            <div class="multiplier-label">Compound multiplier <span class="pill claim">claim</span></div>
+            <div class="multiplier"><span id="mult-num">1.0</span><span class="x">×</span></div>
+          </div>
+          <p class="story" id="sim-story">Nothing enabled yet. A base model running Adam-style training on full attention is the baseline.</p>
+          <button class="reset" id="sim-reset" type="button">Reset all levers</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== LEVER 1 — TOKEN EFFICIENCY ============== -->
+  <section class="bay" id="lever-1" aria-labelledby="l1-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="l1-h"><span class="num">02 — Lever one · Token efficiency</span>Shift the loss curve to the left.</h2>
+        <p class="sect-lede">
+          Token efficiency isn’t cost-cutting; it’s an intelligence multiplier. If you can squeeze 2× the
+          learning out of the same data, your fixed pile of high-quality tokens effectively doubles —
+          right when the field is hitting a data wall.
+        </p>
+      </header>
+
+      <div class="deep-dive">
+        <div class="dd-text">
+          <div class="kicker">MuonClip = Muon + QK-Clip</div>
+          <h3>A second-order optimizer that scales.</h3>
+          <p>
+            <strong>Muon</strong> is a second-order optimizer that transforms each gradient update so
+            entries are roughly orthogonal — a stark departure from Adam. Implemented well, Kimi reports it
+            roughly doubles token efficiency.
+          </p>
+          <p>
+            But at a trillion parameters Muon blew up: max attention logits exploded past 1,000 and loss
+            diverged. <strong>QK-Clip</strong> rescales the query and key projections of each attention head
+            using the observed max logit in the forward pass, holding it inside a sane range without changing
+            the loss curve.
+          </p>
+          <dl>
+            <dt>Why it matters</dt><dd>High-quality tokens are finite; better optimization compounds the ceiling.</dd>
+            <dt>What QK-Clip fixes</dt><dd>Numerical blow-up at scale — not the loss itself.</dd>
+            <dt>Drop-in?</dt><dd>Yes — positioned as a replacement for AdamW.</dd>
+          </dl>
+        </div>
+
+        <figure class="dd-vis" aria-labelledby="l1-figcap">
+          <figcaption id="l1-figcap">Loss curve — Adam baseline vs MuonClip</figcaption>
+          <svg viewBox="0 0 360 220" role="img" aria-label="Loss curve shifted left under MuonClip">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="var(--accent)" stop-opacity="0"/>
+                <stop offset="1" stop-color="var(--accent)" stop-opacity="0.18"/>
+              </linearGradient>
+            </defs>
+            <!-- axes -->
+            <line x1="40" y1="10" x2="40" y2="180" stroke="currentColor" stroke-opacity="0.35"/>
+            <line x1="40" y1="180" x2="340" y2="180" stroke="currentColor" stroke-opacity="0.35"/>
+            <text x="40" y="200" font-family="ui-monospace,monospace" font-size="10" fill="currentColor" opacity="0.55">log(tokens)</text>
+            <text x="0" y="20" font-family="ui-monospace,monospace" font-size="10" fill="currentColor" opacity="0.55">loss</text>
+            <!-- adam curve -->
+            <path d="M55,30 C 140,40 200,110 340,150" stroke="var(--ink-dim)" stroke-width="1.8" fill="none"/>
+            <text x="270" y="135" font-family="ui-monospace,monospace" font-size="10" fill="var(--ink-dim)">Adam</text>
+            <!-- muon curve (shifted left) -->
+            <path id="muonCurve" d="M55,55 C 110,65 160,110 290,150" stroke="var(--accent)" stroke-width="2.2" fill="none"/>
+            <text x="220" y="170" font-family="ui-monospace,monospace" font-size="10" fill="var(--accent)">MuonClip</text>
+            <!-- shift arrow -->
+            <g opacity="0.7">
+              <line x1="180" y1="92" x2="135" y2="92" stroke="var(--accent-2)" stroke-width="1.4" marker-end="url(#arr1)"/>
+              <text x="138" y="82" font-family="ui-monospace,monospace" font-size="10" fill="var(--accent-2)">shift left</text>
+            </g>
+            <defs>
+              <marker id="arr1" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent-2)"/>
+              </marker>
+            </defs>
+          </svg>
+          <div class="controls" aria-label="Inspect QK-Clip behavior">
+            <label><input type="checkbox" id="qkClipToggle" /> Show max-logit trajectory with QK-Clip</label>
+          </div>
+          <svg id="logitChart" viewBox="0 0 360 110" role="img" aria-label="Max attention logit over training steps">
+            <line x1="40" y1="10" x2="40" y2="90" stroke="currentColor" stroke-opacity="0.35"/>
+            <line x1="40" y1="90" x2="340" y2="90" stroke="currentColor" stroke-opacity="0.35"/>
+            <text x="40" y="105" font-family="ui-monospace,monospace" font-size="10" fill="currentColor" opacity="0.55">step</text>
+            <text x="2" y="20" font-family="ui-monospace,monospace" font-size="10" fill="currentColor" opacity="0.55">max logit</text>
+            <text x="300" y="20" font-family="ui-monospace,monospace" font-size="10" fill="var(--bad)">~1000</text>
+            <text x="300" y="55" font-family="ui-monospace,monospace" font-size="10" fill="var(--good)">~100</text>
+            <!-- divergent path: hidden when clipped -->
+            <path id="divergentPath" d="M55,80 L 120,75 L 180,60 L 240,30 L 320,15" stroke="var(--bad)" stroke-width="1.8" fill="none"/>
+            <!-- clipped path -->
+            <path id="clippedPath" d="M55,80 L 120,75 L 180,60 L 200,55 L 240,55 L 320,72" stroke="var(--good)" stroke-width="1.8" fill="none" style="display:none"/>
+          </svg>
+          <p class="claim">~2× token-efficiency improvement over AdamW; stable at 1T parameters.</p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== LEVER 2 — LONG CONTEXT ============== -->
+  <section class="bay" id="lever-2" aria-labelledby="l2-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="l2-h"><span class="num">03 — Lever two · Long context</span>Loss should keep dropping deeper into the prompt.</h2>
+        <p class="sect-lede">
+          A hidden gem from the Kaplan paper: transformers don’t just beat LSTMs in aggregate loss — they keep
+          improving as the context grows. Kimi Linear pushes that further with a mix of linear and full
+          attention plus a finer-grained forgetting mechanism.
+        </p>
+      </header>
+
+      <div class="deep-dive">
+        <div class="dd-text">
+          <div class="kicker">Kimi Linear · Kimi Delta Attention</div>
+          <h3>Per-channel decay instead of one global knob.</h3>
+          <p>
+            Vanilla linear attention shares a single scalar decay factor — you either forget almost everything
+            or you remember almost everything. <strong>Kimi Delta Attention</strong> replaces that scalar with
+            a diagonal matrix, letting each channel decay at its own rate.
+          </p>
+          <p>
+            Some channels persist for hundreds of thousands of tokens, while others refresh quickly to track
+            new information. Mixed with full attention in a <strong>1:3 ratio</strong>, Kimi Linear is reported
+            to beat full attention across short and long context — while staying cheaper at scale.
+          </p>
+          <dl>
+            <dt>Why mix?</dt><dd>Pure linear attention is fast but expressively weaker than full attention.</dd>
+            <dt>Math caveat</dt><dd>The chunk-wise reformulation is exact, not an approximation.</dd>
+            <dt>Why it matters</dt><dd>Agent runs that go for days need useful memory, not just long memory.</dd>
+          </dl>
+        </div>
+
+        <figure class="dd-vis" aria-labelledby="l2-figcap">
+          <figcaption id="l2-figcap">Per-channel decay — drag the slider</figcaption>
+          <p style="font-size:13px; color:var(--ink-dim); margin:0;">
+            Each column is one channel’s memory of the last 16 tokens. Move the slider to interpolate from
+            a single global decay (left) toward fine-grained per-channel decay (right).
+          </p>
+          <svg id="decayGrid" viewBox="0 0 360 140" role="img" aria-label="Per-channel decay matrix"></svg>
+          <div class="controls">
+            <label>
+              global → fine-grained
+              <input type="range" id="decaySlider" min="0" max="100" value="0" aria-label="Decay granularity" />
+            </label>
+          </div>
+          <p class="claim">Kimi Linear beats full attention across short, long-input, and long-output tasks (per their reported eval).</p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== LEVER 3 — AGENT SWARMS ============== -->
+  <section class="bay" id="lever-3" aria-labelledby="l3-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="l3-h"><span class="num">04 — Lever three · Agent swarms</span>An orchestrator and many sub-agents.</h2>
+        <p class="sect-lede">
+          A single agent eventually hits a wall on complex tasks. A swarm splits the task across parallel
+          sub-agents that an orchestrator coordinates — the analogue of a company decomposing a project
+          across roles. The trick is teaching the swarm not to collapse back into one agent.
+        </p>
+      </header>
+
+      <div class="swarm-grid">
+        <div class="swarm-card">
+          <h3>Single agent — serial</h3>
+          <div class="timeline" id="serialTimeline" aria-live="polite">
+            <div class="step on"><span class="t">t=0s</span><span>Receive task</span></div>
+          </div>
+          <div class="total"><span>Steps run</span><b id="serialSteps">0</b></div>
+        </div>
+
+        <div class="swarm-card">
+          <h3>Swarm — orchestrator + sub-agents</h3>
+          <div class="timeline" id="swarmTimeline" aria-live="polite">
+            <div class="step on"><span class="t">t=0s</span><span>Orchestrator decomposes task</span></div>
+          </div>
+          <div class="total"><span>Sub-agents spawned</span><b id="swarmAgents">0</b></div>
+        </div>
+      </div>
+
+      <div class="swarm-controls">
+        <button class="btn" id="runSwarm" type="button">Run task on both</button>
+        <button class="btn secondary" id="resetSwarm" type="button">Reset</button>
+        <span style="font-family:var(--mono); font-size:12px; color:var(--ink-faint);">Task: <em>“Write a 100-page literature review across 12 fields.”</em></span>
+      </div>
+
+      <div class="quiz" aria-labelledby="quiz-h">
+        <h3 id="quiz-h">Diagnose the failure mode</h3>
+        <p style="margin:0; color:var(--ink-dim); font-size:14.5px;">
+          The talk introduces three RL reward terms — <span class="pill">instantiation</span>
+          <span class="pill">finish</span> <span class="pill">outcome</span> — because untrained swarms
+          fail in specific ways. Read the trace and pick what went wrong.
+        </p>
+        <div class="prompt" id="quiz-prompt">Loading…</div>
+        <div class="quiz-options" id="quiz-options" role="group" aria-label="Diagnosis options"></div>
+        <div class="quiz-feedback" id="quiz-feedback" role="status" aria-live="polite"></div>
+        <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+          <span class="pill" id="quiz-counter">Case 1 of 3</span>
+          <button class="btn secondary" id="quiz-next" type="button" disabled>Next case →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== LEVER 4 — MULTIMODAL ============== -->
+  <section class="bay" id="lever-4" aria-labelledby="l4-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="l4-h"><span class="num">05 — Lever four · Multimodal pretraining</span>Vision and text, fused from day one.</h2>
+        <p class="sect-lede">
+          Open multimodal models typically bolt vision onto a finished text model. K2.5 instead trains vision
+          and text jointly from 0% of pretraining — <em>early fusion</em>. The surprising part: when aligned in
+          a shared representation, the two modalities help each other.
+        </p>
+      </header>
+
+      <div class="deep-dive">
+        <div class="dd-text">
+          <div class="kicker">Early fusion · zero vision SFT</div>
+          <h3>Two modalities, one representation space.</h3>
+          <p>
+            The conventional recipe is <strong>late fusion</strong>: train a strong text base on 20T tokens,
+            then post-train on 2T tokens of vision data. K2.5 mixes vision and text tokens from step zero, so
+            they share an embedding space.
+          </p>
+          <p>
+            Two reported asymmetries: vision-only training improves text benchmarks even though no math or code
+            tokens were involved, and a strong text base pulls vision performance up without using any vision
+            supervised fine-tuning data at all (“zero vision SFT”).
+          </p>
+        </div>
+        <figure class="dd-vis" aria-labelledby="l4-figcap">
+          <figcaption id="l4-figcap">Late fusion vs early fusion</figcaption>
+          <svg viewBox="0 0 360 200" role="img" aria-label="Late fusion vs early fusion diagram">
+            <!-- LATE FUSION -->
+            <text x="10" y="20" font-family="ui-monospace,monospace" font-size="11" fill="var(--ink-dim)">late fusion</text>
+            <rect x="10" y="30" width="240" height="22" fill="var(--bg-soft)" stroke="var(--rule)"/>
+            <text x="120" y="46" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="var(--ink)">text · 20T tokens</text>
+            <rect x="252" y="30" width="98" height="22" fill="color-mix(in srgb, var(--accent-2) 22%, var(--bg-soft))" stroke="var(--accent-2)"/>
+            <text x="300" y="46" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="var(--accent-2)">+vision 2T</text>
+
+            <!-- EARLY FUSION -->
+            <text x="10" y="90" font-family="ui-monospace,monospace" font-size="11" fill="var(--ink-dim)">early fusion</text>
+            <g>
+              <rect x="10" y="100" width="340" height="22" fill="url(#fuse)" stroke="var(--accent)"/>
+              <defs>
+                <linearGradient id="fuse" x1="0" x2="1">
+                  <stop offset="0" stop-color="var(--accent)" stop-opacity="0.4"/>
+                  <stop offset="1" stop-color="var(--accent-2)" stop-opacity="0.4"/>
+                </linearGradient>
+              </defs>
+              <text x="180" y="116" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="var(--ink)">vision + text · jointly from step 0</text>
+            </g>
+
+            <!-- benefits arrows -->
+            <g transform="translate(10,150)">
+              <text x="0" y="0" font-family="ui-monospace,monospace" font-size="11" fill="var(--accent)">vision → text ↑</text>
+              <text x="0" y="18" font-family="ui-monospace,monospace" font-size="11" fill="var(--accent-2)">text → vision ↑</text>
+              <text x="0" y="38" font-family="ui-monospace,monospace" font-size="11" fill="var(--ink-dim)">enables vision-to-code, design transfer</text>
+            </g>
+          </svg>
+          <p class="claim">First open model with native joint vision–text pretraining (per their framing).</p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== LEVER 5 — ATTENTION RESIDUALS ============== -->
+  <section class="bay" id="lever-5" aria-labelledby="l5-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="l5-h"><span class="num">06 — Lever five · Attention residuals</span>Residual connections, but rotated 90°.</h2>
+        <p class="sect-lede">
+          Ilya’s framing: a standard residual connection is an LSTM rotated 90 degrees, running across the
+          depth dimension. If we already replaced LSTMs with attention in the temporal dimension, why not also
+          replace residuals with attention in the depth dimension?
+        </p>
+      </header>
+
+      <div class="deep-dive">
+        <div class="dd-text">
+          <div class="kicker">Attention over previous layers</div>
+          <h3>Each layer attends over all the layers below it.</h3>
+          <p>
+            A standard residual just adds the previous layer’s output to the current one — a fixed-weight
+            recurrence over depth. <strong>Attention residuals</strong> let the current layer attend over
+            <em>all</em> previous hidden states, weighting them dynamically.
+          </p>
+          <p>
+            To keep compute and memory tractable, the team groups layers into blocks; attention residuals
+            cross block boundaries while standard residuals operate inside each block.
+          </p>
+          <dl>
+            <dt>Reported gain</dt><dd>+24% token efficiency over a strong baseline.</dd>
+            <dt>What it helps most</dt><dd>Coding, math, and reasoning-heavy benchmarks.</dd>
+            <dt>Released</dt><dd>As a tech report alongside the talk (per the speaker).</dd>
+          </dl>
+        </div>
+
+        <figure class="dd-vis" aria-labelledby="l5-figcap">
+          <figcaption id="l5-figcap">Click a layer — see which previous layers feed it</figcaption>
+          <svg id="residualDiag" viewBox="0 0 360 220" role="img" aria-label="Attention residual interactive diagram"></svg>
+          <p style="font-size:13px; color:var(--ink-dim); margin:0;">
+            Standard residual: each layer reads only the one below. Attention residual: each layer dynamically
+            weighs every prior layer. Click any layer node to highlight its inputs.
+          </p>
+          <p class="claim">+24% token efficiency in their reported scaling-law fit.</p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== SYNTHESIS ============== -->
+  <section class="bay" id="synthesis" aria-labelledby="syn-h">
+    <div class="wrap">
+      <header>
+        <h2 class="sect" id="syn-h"><span class="num">07 — Synthesis</span>Multiply, don’t pick.</h2>
+        <p class="sect-lede">
+          The team’s closing slide makes one assertion: these gains don’t compete, they compound. Whether the
+          arithmetic survives independent reproduction is a separate question; the architectural argument is
+          what matters here.
+        </p>
+      </header>
+
+      <div class="multiply-strip" aria-label="Compounded gains from the five levers">
+        <div class="multiply-cell">
+          <div class="k">Lever 1</div>
+          <div class="v">2.0<span class="x">×</span></div>
+          <div class="n">MuonClip vs Adam token efficiency.</div>
+        </div>
+        <div class="multiply-cell">
+          <div class="k">Lever 2</div>
+          <div class="v">1.0<span class="x">×</span><sup style="font-size:12px; color:var(--ink-dim);">‡</sup></div>
+          <div class="n">Kimi Linear — gains in long-context capability rather than raw token efficiency.</div>
+        </div>
+        <div class="multiply-cell">
+          <div class="k">Lever 3</div>
+          <div class="v">N<span class="x">×</span></div>
+          <div class="n">Swarms — parallel sub-agents reduce wall-clock on complex tasks.</div>
+        </div>
+        <div class="multiply-cell">
+          <div class="k">Lever 4</div>
+          <div class="v">+<span class="x">+</span></div>
+          <div class="n">Multimodal — vision and text improve each other; not a clean multiplier.</div>
+        </div>
+        <div class="multiply-cell">
+          <div class="k">Lever 5</div>
+          <div class="v">1.24<span class="x">×</span></div>
+          <div class="n">Attention residuals — +24% token efficiency.</div>
+        </div>
+        <div class="multiply-total" aria-label="Compound result">
+          <div class="k">Compound</div>
+          <div class="v">≈ 2.5<span class="x">×</span></div>
+          <div class="n" style="font-family:var(--mono); font-size:11px; color:var(--ink-dim); margin-top:2px;">on the two pure-efficiency levers alone</div>
+        </div>
+      </div>
+      <p style="margin-top:18px; font-size:13px; color:var(--ink-faint);">
+        ‡ Long context and swarm gains aren’t naturally a single multiplier on the same loss curve, so the
+        “2.5×” here is a deliberately narrow composition of the two efficiency-only levers as stated in the talk.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site" role="contentinfo">
+  <div class="wrap">
+    <div class="caveat">
+      <b>Note on claims.</b> Every numerical figure on this page — 2× from MuonClip, the 1:3 mix in Kimi
+      Linear, the +24% from attention residuals, K2.5’s asymmetric vision↔text gains, the agent-swarm reward
+      design — is taken from the speaker’s talk and tech reports. They have not been independently verified
+      here. Treat them as architectural claims worth probing, not settled benchmarks.
+    </div>
+    <p>
+      This artifact is a single-page interactive summary built from a public conference talk on the Kimi K2.5
+      open model and the team’s subsequent attention-residuals tech report. It deliberately covers one
+      idea — that scaling has become multi-dimensional — rather than the full surface area of LLM architecture.
+    </p>
+    <p class="meta">Built as a static HTML artifact · no external dependencies · respects prefers-reduced-motion</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  // ============================================================
+  //  LEVER SIMULATOR
+  // ============================================================
+  const levers = [
+    { id: "tokens",   label: "Token efficiency",     sub: "MuonClip",          mult: 2.00, gain: "+2.00×" },
+    { id: "context",  label: "Long context",         sub: "Kimi Linear · KDA", mult: 1.00, gain: "capability" },
+    { id: "swarms",   label: "Agent swarms",         sub: "orchestrator + sub-agents", mult: 1.00, gain: "parallelism" },
+    { id: "modal",    label: "Multimodal pretrain",  sub: "early fusion",      mult: 1.00, gain: "cross-modal lift" },
+    { id: "residual", label: "Attention residuals",  sub: "depth-wise attention", mult: 1.24, gain: "+1.24×" }
+  ];
+  const state = Object.fromEntries(levers.map(l => [l.id, false]));
+
+  const list = document.getElementById("lever-list");
+  const multNum = document.getElementById("mult-num");
+  const story = document.getElementById("sim-story");
+  const resetBtn = document.getElementById("sim-reset");
+
+  const stories = {
+    none: "Nothing enabled yet. A base model running Adam-style training on full attention is the baseline.",
+    tokens: "MuonClip doubles token efficiency in their reported scaling-law fit — the loss curve shifts left.",
+    context: "Kimi Linear keeps the loss dropping deeper into the context, with per-channel decay so memory is selective, not all-or-nothing.",
+    swarms: "An orchestrator decomposes the task; sub-agents run in parallel. RL rewards (instantiation · finish · outcome) keep them from collapsing into one serial worker.",
+    modal: "Vision and text are trained jointly from step 0. Each modality reportedly lifts the other — vision-to-code emerges as a side effect of shared representations.",
+    residual: "Layers attend over all previous layers, not just the one below — residual connections rotated 90°. Reported +24% token efficiency.",
+    all: "Five levers stacked. The talk’s thesis: openness only matters if open models are great, and great means pulling on every dimension of scaling at once — not just bigger and longer."
+  };
+
+  function render() {
+    list.innerHTML = "";
+    levers.forEach(l => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "lever";
+      btn.setAttribute("aria-pressed", state[l.id] ? "true" : "false");
+      btn.dataset.id = l.id;
+      btn.innerHTML = `
+        <span class="dot" aria-hidden="true"></span>
+        <span class="label">
+          <span>${l.label}</span>
+          <span class="sub">${l.sub}</span>
+        </span>
+        <span class="gain">${l.gain}</span>
+      `;
+      btn.addEventListener("click", () => { state[l.id] = !state[l.id]; render(); });
+      list.appendChild(btn);
+    });
+
+    // compound multiplier (efficiency only — others marked as not pure multipliers)
+    let m = 1.0;
+    if (state.tokens)   m *= 2.00;
+    if (state.residual) m *= 1.24;
+    multNum.textContent = m.toFixed(2);
+
+    const enabledIds = levers.filter(l => state[l.id]).map(l => l.id);
+    let storyText;
+    if (enabledIds.length === 0) storyText = stories.none;
+    else if (enabledIds.length === 5) storyText = stories.all;
+    else if (enabledIds.length === 1) storyText = stories[enabledIds[0]];
+    else {
+      storyText = "Stacked: " + enabledIds.map(id => {
+        const l = levers.find(x => x.id === id);
+        return l.label.toLowerCase();
+      }).join(" + ") + ". Each lever fixes a different bottleneck — that’s the talk’s whole point.";
+    }
+    story.textContent = storyText;
+  }
+
+  resetBtn.addEventListener("click", () => {
+    Object.keys(state).forEach(k => state[k] = false);
+    render();
+  });
+
+  render();
+
+  // ============================================================
+  //  QK-CLIP CHART TOGGLE
+  // ============================================================
+  const qkToggle = document.getElementById("qkClipToggle");
+  const divPath = document.getElementById("divergentPath");
+  const clipPath = document.getElementById("clippedPath");
+  qkToggle.addEventListener("change", () => {
+    if (qkToggle.checked) { divPath.style.display = "none"; clipPath.style.display = ""; }
+    else { divPath.style.display = ""; clipPath.style.display = "none"; }
+  });
+
+  // ============================================================
+  //  PER-CHANNEL DECAY GRID
+  // ============================================================
+  const decaySlider = document.getElementById("decaySlider");
+  const decaySvg = document.getElementById("decayGrid");
+  const channels = 12, tokens = 16;
+
+  function renderDecay() {
+    const g = parseInt(decaySlider.value, 10) / 100; // 0 = global, 1 = fine
+    decaySvg.innerHTML = "";
+    const ns = "http://www.w3.org/2000/svg";
+    const cellW = 320 / tokens;
+    const cellH = 120 / channels;
+    // per-channel decay rates: when g=0 all share the same rate; when g=1 they spread out
+    const baseRate = 0.85;
+    for (let c = 0; c < channels; c++) {
+      const spread = 0.45;
+      const channelRate = baseRate + (c / (channels - 1) - 0.5) * spread * g;
+      for (let t = 0; t < tokens; t++) {
+        const age = tokens - 1 - t;
+        const retention = Math.pow(Math.max(0.05, Math.min(0.999, channelRate)), age);
+        const rect = document.createElementNS(ns, "rect");
+        rect.setAttribute("x", 20 + t * cellW);
+        rect.setAttribute("y", 10 + c * cellH);
+        rect.setAttribute("width", cellW - 1);
+        rect.setAttribute("height", cellH - 1);
+        const opacity = retention.toFixed(2);
+        rect.setAttribute("fill", `color-mix(in srgb, var(--accent) ${(retention * 90).toFixed(0)}%, var(--bg-soft))`);
+        decaySvg.appendChild(rect);
+      }
+    }
+    // labels
+    const ns2 = "http://www.w3.org/2000/svg";
+    const xl = document.createElementNS(ns2, "text");
+    xl.setAttribute("x", 20); xl.setAttribute("y", 138);
+    xl.setAttribute("font-family", "ui-monospace,monospace"); xl.setAttribute("font-size", "10");
+    xl.setAttribute("fill", "currentColor"); xl.setAttribute("opacity", "0.55");
+    xl.textContent = "older tokens →";
+    decaySvg.appendChild(xl);
+    const yl = document.createElementNS(ns2, "text");
+    yl.setAttribute("x", 4); yl.setAttribute("y", 16);
+    yl.setAttribute("font-family", "ui-monospace,monospace"); yl.setAttribute("font-size", "10");
+    yl.setAttribute("fill", "currentColor"); yl.setAttribute("opacity", "0.55");
+    yl.textContent = "channels";
+    decaySvg.appendChild(yl);
+  }
+  decaySlider.addEventListener("input", renderDecay);
+  renderDecay();
+
+  // ============================================================
+  //  AGENT SWARM SIMULATION
+  // ============================================================
+  const serialTl = document.getElementById("serialTimeline");
+  const swarmTl = document.getElementById("swarmTimeline");
+  const serialStepsEl = document.getElementById("serialSteps");
+  const swarmAgentsEl = document.getElementById("swarmAgents");
+  const runBtn = document.getElementById("runSwarm");
+  const resetSwarmBtn = document.getElementById("resetSwarm");
+  let swarmTimer = null;
+
+  const serialSteps = [
+    "Read source 1/12",
+    "Read source 2/12",
+    "Read source 3/12 …",
+    "Read source 12/12",
+    "Draft section A",
+    "Draft section B …",
+    "Final assembly",
+    "Done — 7m 12s wall clock"
+  ];
+  const swarmSteps = [
+    "Spawn 12 sub-agents (one per field)",
+    "Sub-agents read sources in parallel",
+    "Spawn 3 fact-checker sub-agents",
+    "Spawn 2 writer sub-agents",
+    "Orchestrator aggregates results",
+    "Final report assembled",
+    "Done — 1m 04s wall clock"
+  ];
+
+  function resetSwarm() {
+    if (swarmTimer) { clearTimeout(swarmTimer); swarmTimer = null; }
+    serialTl.innerHTML = '<div class="step on"><span class="t">t=0s</span><span>Receive task</span></div>';
+    swarmTl.innerHTML = '<div class="step on"><span class="t">t=0s</span><span>Orchestrator decomposes task</span></div>';
+    serialStepsEl.textContent = "0";
+    swarmAgentsEl.textContent = "0";
+    runBtn.disabled = false;
+    runBtn.textContent = "Run task on both";
+  }
+
+  function runSwarmSim() {
+    resetSwarm();
+    runBtn.disabled = true;
+    runBtn.textContent = "Running…";
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const tick = reducedMotion ? 60 : 380;
+
+    // serial — slow, sequential
+    let si = 0, sec = 1;
+    function nextSerial() {
+      if (si >= serialSteps.length) return;
+      const stepEl = document.createElement("div");
+      stepEl.className = "step on" + (si === serialSteps.length - 1 ? " done" : " active");
+      stepEl.innerHTML = `<span class="t">t=${sec}s</span><span>${serialSteps[si]}</span>`;
+      // mark prior 'active' as just-on
+      serialTl.querySelectorAll(".step.active").forEach(el => el.classList.remove("active"));
+      serialTl.appendChild(stepEl);
+      serialStepsEl.textContent = si + 1;
+      sec += (si === serialSteps.length - 1) ? 0 : Math.max(60, 50);
+      si++;
+      if (si < serialSteps.length) setTimeout(nextSerial, tick);
+    }
+
+    // swarm — parallel
+    let wi = 0, wsec = 0, agents = 0;
+    function nextSwarm() {
+      if (wi >= swarmSteps.length) return;
+      const stepEl = document.createElement("div");
+      stepEl.className = "step on" + (wi === swarmSteps.length - 1 ? " done" : " active");
+      stepEl.innerHTML = `<span class="t">t=${wsec}s</span><span>${swarmSteps[wi]}</span>`;
+      swarmTl.querySelectorAll(".step.active").forEach(el => el.classList.remove("active"));
+      swarmTl.appendChild(stepEl);
+      // agent counter
+      if (wi === 0) agents += 12;
+      if (wi === 2) agents += 3;
+      if (wi === 3) agents += 2;
+      swarmAgentsEl.textContent = agents;
+      wsec += (wi === swarmSteps.length - 1) ? 0 : 8;
+      wi++;
+      if (wi < swarmSteps.length) setTimeout(nextSwarm, tick * 0.7);
+    }
+
+    nextSerial();
+    nextSwarm();
+    swarmTimer = setTimeout(() => {
+      runBtn.disabled = false;
+      runBtn.textContent = "Run again";
+    }, tick * Math.max(serialSteps.length, swarmSteps.length) + 200);
+  }
+
+  runBtn.addEventListener("click", runSwarmSim);
+  resetSwarmBtn.addEventListener("click", resetSwarm);
+
+  // ============================================================
+  //  FAILURE-MODE QUIZ
+  // ============================================================
+  const cases = [
+    {
+      prompt: "Orchestrator was asked to write a literature review. It produced a coherent answer — but spawned only one sub-agent that did all the work serially. No parallelism, no speed-up.",
+      options: [
+        { text: "Serial collapse — fix with the instantiation reward.", correct: true,  why: "Right. The instantiation reward incentivizes the orchestrator to actually spawn parallel sub-agents instead of defaulting to a single execution path." },
+        { text: "Meaningless task spawning — fix with the finish reward.", correct: false, why: "Not quite. Sub-tasks finished — there just weren’t any in parallel. The instantiation reward is the one targeting this." },
+        { text: "Bad outcome — fix with the outcome reward.",            correct: false, why: "The outcome may still have been fine; the bug is in how the work was distributed, not in the final answer." },
+        { text: "Long-context failure — needs Kimi Linear.",              correct: false, why: "Different lever entirely. This is a swarm-orchestration problem." }
+      ]
+    },
+    {
+      prompt: "Orchestrator spawned 40 sub-agents to maximize parallelism. Most spun up, did nothing useful, and never returned a completed result.",
+      options: [
+        { text: "Meaningless spawning — fix with the finish reward.",    correct: true,  why: "Yes. Without a finish-completion reward, the orchestrator can game the instantiation reward by spawning sub-agents that never close out." },
+        { text: "Serial collapse — fix with the instantiation reward.",   correct: false, why: "The opposite problem — there’s too much spawning, not too little." },
+        { text: "Architecture failure — needs attention residuals.",      correct: false, why: "Different layer of the stack. This is an RL reward-design problem." },
+        { text: "Optimizer instability — needs QK-Clip.",                 correct: false, why: "QK-Clip stabilizes attention logits, not swarm orchestration." }
+      ]
+    },
+    {
+      prompt: "Sub-agents spawn cleanly and almost all finish their assigned sub-tasks. But the final report is incoherent — sections contradict each other.",
+      options: [
+        { text: "Outcome reward — measures whether the whole task is actually completed end-to-end.", correct: true,  why: "Exactly. Instantiation and finish rewards keep the swarm alive and busy; the outcome reward is what aligns the swarm with whether the user’s actual task got done." },
+        { text: "Finish reward needs to be higher.",                                                  correct: false, why: "Finish rewards are firing — sub-tasks are completing. The end-to-end goal isn’t being scored, which is the outcome reward’s job." },
+        { text: "Instantiation reward needs to be higher.",                                           correct: false, why: "More sub-agents won’t fix a coherence problem in the final assembly." },
+        { text: "Drop multimodal pretraining.",                                                       correct: false, why: "Unrelated to swarm orchestration." }
+      ]
+    }
+  ];
+  let qi = 0;
+  const qPrompt = document.getElementById("quiz-prompt");
+  const qOpts = document.getElementById("quiz-options");
+  const qFb = document.getElementById("quiz-feedback");
+  const qNext = document.getElementById("quiz-next");
+  const qCounter = document.getElementById("quiz-counter");
+
+  function renderQuiz() {
+    const c = cases[qi];
+    qPrompt.textContent = c.prompt;
+    qOpts.innerHTML = "";
+    qFb.textContent = "";
+    qFb.removeAttribute("data-state");
+    qNext.disabled = true;
+    qCounter.textContent = `Case ${qi + 1} of ${cases.length}`;
+    c.options.forEach((opt, idx) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = opt.text;
+      b.addEventListener("click", () => {
+        if (b.dataset.state) return;
+        if (opt.correct) {
+          b.dataset.state = "correct";
+          qFb.textContent = opt.why;
+          qFb.dataset.state = "correct";
+        } else {
+          b.dataset.state = "wrong";
+          qFb.textContent = opt.why;
+          qFb.dataset.state = "wrong";
+        }
+        // disable the rest
+        Array.from(qOpts.children).forEach(child => {
+          if (!child.dataset.state) child.dataset.state = "disabled";
+        });
+        qNext.disabled = qi >= cases.length - 1;
+        if (qi >= cases.length - 1) qNext.textContent = "All cases done";
+      });
+      qOpts.appendChild(b);
+    });
+  }
+  qNext.addEventListener("click", () => {
+    if (qi < cases.length - 1) {
+      qi += 1;
+      renderQuiz();
+    }
+  });
+  renderQuiz();
+
+  // ============================================================
+  //  ATTENTION RESIDUAL DIAGRAM
+  // ============================================================
+  const rSvg = document.getElementById("residualDiag");
+  const ns = "http://www.w3.org/2000/svg";
+  const layers = 8;
+  const layerX = 60, layerSpacing = 36;
+  let selected = layers - 1;
+
+  function renderResidual() {
+    rSvg.innerHTML = "";
+    // title rows
+    const lbl1 = document.createElementNS(ns, "text");
+    lbl1.setAttribute("x", 10); lbl1.setAttribute("y", 24);
+    lbl1.setAttribute("font-family", "ui-monospace,monospace"); lbl1.setAttribute("font-size", "11");
+    lbl1.setAttribute("fill", "var(--ink-dim)"); lbl1.textContent = "standard residual";
+    rSvg.appendChild(lbl1);
+    const lbl2 = document.createElementNS(ns, "text");
+    lbl2.setAttribute("x", 10); lbl2.setAttribute("y", 130);
+    lbl2.setAttribute("font-family", "ui-monospace,monospace"); lbl2.setAttribute("font-size", "11");
+    lbl2.setAttribute("fill", "var(--accent)"); lbl2.textContent = "attention residual";
+    rSvg.appendChild(lbl2);
+
+    // STANDARD ROW — y=50, only previous layer connects
+    for (let i = 0; i < layers; i++) {
+      if (i > 0) {
+        const ln = document.createElementNS(ns, "line");
+        ln.setAttribute("x1", layerX + (i - 1) * layerSpacing + 10);
+        ln.setAttribute("y1", 50);
+        ln.setAttribute("x2", layerX + i * layerSpacing - 10);
+        ln.setAttribute("y2", 50);
+        ln.setAttribute("stroke", "var(--ink-dim)"); ln.setAttribute("stroke-width", "1.4");
+        rSvg.appendChild(ln);
+      }
+      const c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", layerX + i * layerSpacing);
+      c.setAttribute("cy", 50);
+      c.setAttribute("r", 8);
+      c.setAttribute("fill", "var(--bg-soft)");
+      c.setAttribute("stroke", "var(--ink-dim)");
+      c.setAttribute("stroke-width", "1.5");
+      rSvg.appendChild(c);
+    }
+
+    // ATTENTION ROW — y=170, clickable; selected layer attends to all previous
+    for (let i = 0; i < layers; i++) {
+      if (i < selected) {
+        // arc from layer i to selected
+        const x1 = layerX + i * layerSpacing;
+        const x2 = layerX + selected * layerSpacing;
+        const mid = (x1 + x2) / 2;
+        const dy = -10 - (selected - i) * 4;
+        const path = document.createElementNS(ns, "path");
+        path.setAttribute("d", `M${x1},170 Q${mid},${170 + dy} ${x2},170`);
+        path.setAttribute("stroke", "var(--accent)");
+        path.setAttribute("stroke-opacity", String(0.25 + 0.55 * (1 - (selected - i) / selected)));
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke-width", "1.6");
+        rSvg.appendChild(path);
+      }
+    }
+    for (let i = 0; i < layers; i++) {
+      const c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", layerX + i * layerSpacing);
+      c.setAttribute("cy", 170);
+      c.setAttribute("r", 10);
+      c.setAttribute("fill", i === selected ? "var(--accent)" : "var(--bg-soft)");
+      c.setAttribute("stroke", i === selected ? "var(--accent)" : "var(--accent)");
+      c.setAttribute("stroke-opacity", i === selected ? "1" : "0.5");
+      c.setAttribute("stroke-width", "1.5");
+      c.style.cursor = "pointer";
+      c.setAttribute("tabindex", "0");
+      c.setAttribute("role", "button");
+      c.setAttribute("aria-label", `Layer ${i + 1} — click to inspect its inputs`);
+      c.addEventListener("click", () => { selected = i; renderResidual(); });
+      c.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selected = i; renderResidual(); }
+      });
+      rSvg.appendChild(c);
+      const t = document.createElementNS(ns, "text");
+      t.setAttribute("x", layerX + i * layerSpacing);
+      t.setAttribute("y", 195);
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("font-family", "ui-monospace,monospace");
+      t.setAttribute("font-size", "10");
+      t.setAttribute("fill", i === selected ? "var(--accent)" : "var(--ink-faint)");
+      t.textContent = `L${i + 1}`;
+      rSvg.appendChild(t);
+    }
+
+    // depth arrow
+    const arrowG = document.createElementNS(ns, "g");
+    arrowG.innerHTML = `
+      <text x="10" y="60" font-family="ui-monospace,monospace" font-size="10" fill="var(--ink-faint)">depth →</text>
+      <text x="10" y="180" font-family="ui-monospace,monospace" font-size="10" fill="var(--ink-faint)">depth →</text>
+    `;
+    rSvg.appendChild(arrowG);
+  }
+  renderResidual();
+
+})();
+</script>
+</body>
+</html>
