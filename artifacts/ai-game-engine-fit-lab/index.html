@@ -208,14 +208,14 @@
 
   <script>
     const scenarios = [
-      {id:'companion', title:'AI companion RPG', desc:'One memorable NPC talks, remembers, and reacts.', weights:{runtime:5, tools:3, fidelity:3, scale:2, solo:3, ecosystem:5}},
-      {id:'mobileml', title:'Mobile neural mechanic', desc:'A small model runs on-device for gameplay.', weights:{runtime:5, tools:2, fidelity:2, scale:2, solo:3, ecosystem:5}},
-      {id:'stealth', title:'Cinematic stealth shooter', desc:'High-fidelity 3D enemies coordinate, perceive, and flank.', weights:{runtime:3, tools:5, fidelity:5, scale:4, solo:1, ecosystem:4}},
-      {id:'crowd', title:'Thousand-agent city', desc:'Crowds, traffic, factions, and emergent simulation.', weights:{runtime:4, tools:4, fidelity:3, scale:5, solo:2, ecosystem:3}},
-      {id:'cozy2d', title:'2D cozy AI director', desc:'Small team, procedural quests, adaptive pacing.', weights:{runtime:3, tools:3, fidelity:1, scale:2, solo:5, ecosystem:3}},
-      {id:'ugc', title:'UGC/social AI world', desc:'Players create, remix, and share AI-assisted experiences.', weights:{runtime:3, tools:5, fidelity:2, scale:4, solo:3, ecosystem:4}},
-      {id:'research', title:'RL research sandbox', desc:'You train agents and instrument experiments more than ship content.', weights:{runtime:4, tools:2, fidelity:1, scale:4, solo:4, ecosystem:2}},
-      {id:'procworld', title:'Generated 3D world', desc:'AI assists quests, terrain, testing, and live content variation.', weights:{runtime:4, tools:5, fidelity:4, scale:4, solo:2, ecosystem:5}}
+      {id:'companion', title:'AI companion RPG', desc:'One memorable NPC talks, remembers, and reacts.', weights:{runtime:5, tools:3, fidelity:3, scale:2, solo:3, ecosystem:5}, bias:{unity:7, godot:5}},
+      {id:'mobileml', title:'Mobile neural mechanic', desc:'A small model runs on-device for gameplay.', weights:{runtime:5, tools:2, fidelity:2, scale:2, solo:3, ecosystem:5}, bias:{unity:10}},
+      {id:'stealth', title:'Cinematic stealth shooter', desc:'High-fidelity 3D enemies coordinate, perceive, and flank.', weights:{runtime:3, tools:5, fidelity:5, scale:4, solo:1, ecosystem:4}, bias:{unreal:10}},
+      {id:'crowd', title:'Thousand-agent city', desc:'Crowds, traffic, factions, and emergent simulation.', weights:{runtime:4, tools:4, fidelity:3, scale:5, solo:2, ecosystem:3}, bias:{unreal:7, custom:10}},
+      {id:'cozy2d', title:'2D cozy AI director', desc:'Small team, procedural quests, adaptive pacing.', weights:{runtime:3, tools:3, fidelity:1, scale:2, solo:5, ecosystem:3}, bias:{godot:18}},
+      {id:'ugc', title:'UGC/social AI world', desc:'Players create, remix, and share AI-assisted experiences.', weights:{runtime:3, tools:5, fidelity:2, scale:4, solo:3, ecosystem:4}, bias:{roblox:18}},
+      {id:'research', title:'RL research sandbox', desc:'You train agents and instrument experiments more than ship content.', weights:{runtime:4, tools:2, fidelity:1, scale:4, solo:4, ecosystem:2}, bias:{custom:18}},
+      {id:'procworld', title:'Generated 3D world', desc:'AI assists quests, terrain, testing, and live content variation.', weights:{runtime:4, tools:5, fidelity:4, scale:4, solo:2, ecosystem:5}, bias:{unreal:7, unity:5}}
     ];
 
     const engines = [
@@ -236,7 +236,7 @@
     function score(engine, scenario){
       let total=0, max=0;
       criteria.forEach(k=>{ total += engine.caps[k] * scenario.weights[k]; max += 5 * scenario.weights[k]; });
-      return Math.round((total / max) * 100);
+      return Math.min(100, Math.round((total / max) * 100 + ((scenario.bias && scenario.bias[engine.id]) || 0)));
     }
     function sortedEngines(){ return [...engines].sort((a,b)=>score(b,currentScenario)-score(a,currentScenario)); }
     function fitWord(n){ return n>=82?'strong':n>=70?'good':n>=58?'situational':'weak'; }
