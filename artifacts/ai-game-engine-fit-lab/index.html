@@ -6,36 +6,26 @@
   <title>AI Game Engine Fit Lab</title>
   <style>
     :root{
-      color-scheme: light dark;
-      --bg: #f7f3ea;
-      --panel: #fffaf1;
-      --panel-2: #f0e7d7;
-      --ink: #201b16;
-      --muted: #675d52;
-      --line: #d7c8b4;
+      color-scheme: light;
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f5f7fb;
+      --ink: #171717;
+      --muted: #5c6675;
+      --line: #d8dee8;
       --accent: #246bfe;
       --accent-2:#0e9f6e;
       --warn:#b45309;
       --bad:#b42318;
-      --shadow: 0 18px 55px rgba(65,43,19,.12);
+      --shadow: 0 14px 38px rgba(19,35,66,.08);
       --radius: 22px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
       --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    @media (prefers-color-scheme: dark){
-      :root{
-        --bg:#14120f; --panel:#211d18; --panel-2:#2b251f; --ink:#f8efe2; --muted:#d0c5b8;
-        --line:#5a4c40; --accent:#9bb7ff; --accent-2:#65d8aa; --warn:#f5b85d; --bad:#ff8b7f;
-        --shadow: 0 20px 60px rgba(0,0,0,.35);
-      }
-    }
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
     body{
-      margin:0; font-family:var(--sans); background:
-        radial-gradient(circle at 8% 6%, color-mix(in oklab, var(--accent) 20%, transparent), transparent 34rem),
-        radial-gradient(circle at 94% 20%, color-mix(in oklab, var(--accent-2) 18%, transparent), transparent 32rem),
-        var(--bg);
+      margin:0; font-family:var(--sans); background:var(--bg);
       color:var(--ink); line-height:1.45;
     }
     @media (prefers-reduced-motion: reduce){
