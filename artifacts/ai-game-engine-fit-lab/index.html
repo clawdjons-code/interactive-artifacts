@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Game Engine Fit Lab</title>
+  <style>
+    :root{
+      color-scheme: light dark;
+      --bg: #f7f3ea;
+      --panel: #fffaf1;
+      --panel-2: #f0e7d7;
+      --ink: #201b16;
+      --muted: #675d52;
+      --line: #d7c8b4;
+      --accent: #246bfe;
+      --accent-2:#0e9f6e;
+      --warn:#b45309;
+      --bad:#b42318;
+      --shadow: 0 18px 55px rgba(65,43,19,.12);
+      --radius: 22px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#14120f; --panel:#211d18; --panel-2:#2b251f; --ink:#f8efe2; --muted:#d0c5b8;
+        --line:#5a4c40; --accent:#9bb7ff; --accent-2:#65d8aa; --warn:#f5b85d; --bad:#ff8b7f;
+        --shadow: 0 20px 60px rgba(0,0,0,.35);
+      }
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0; font-family:var(--sans); background:
+        radial-gradient(circle at 8% 6%, color-mix(in oklab, var(--accent) 20%, transparent), transparent 34rem),
+        radial-gradient(circle at 94% 20%, color-mix(in oklab, var(--accent-2) 18%, transparent), transparent 32rem),
+        var(--bg);
+      color:var(--ink); line-height:1.45;
+    }
+    @media (prefers-reduced-motion: reduce){
+      *,*::before,*::after{animation:none!important; transition:none!important; scroll-behavior:auto!important}
+    }
+    a{color:var(--accent)}
+    button,input,select{font:inherit}
+    button{min-height:44px}
+    .wrap{width:min(1180px, calc(100% - 28px)); margin:0 auto; padding:24px 0 56px}
+    header{display:grid; grid-template-columns: 1.15fr .85fr; gap:20px; align-items:stretch; margin:12px 0 20px}
+    .hero,.scoreboard,.card,.panel{background:color-mix(in oklab, var(--panel) 94%, transparent); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .hero{padding:28px; position:relative; overflow:hidden}
+    .eyebrow{font-family:var(--mono); color:var(--muted); font-size:.82rem; letter-spacing:.08em; text-transform:uppercase}
+    h1{font-size:clamp(2rem, 4vw, 4.4rem); letter-spacing:-.06em; line-height:.95; margin:.45rem 0 .7rem; text-wrap:balance}
+    .lede{font-size:clamp(1.02rem, 1.7vw, 1.26rem); color:var(--muted); max-width:68ch; margin:0}
+    .thesis{margin-top:18px; padding:14px 16px; border:1px dashed color-mix(in oklab, var(--accent) 55%, var(--line)); border-radius:16px; background:color-mix(in oklab, var(--accent) 8%, var(--panel));}
+    .thesis strong{color:var(--ink)}
+    .scoreboard{padding:20px; display:flex; flex-direction:column; gap:16px}
+    .progressTop{height:10px; background:var(--panel-2); border-radius:999px; overflow:hidden; border:1px solid var(--line)}
+    .progressFill{height:100%; width:25%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .3s ease}
+    .miniStat{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; border-top:1px solid var(--line); padding-top:14px}
+    .miniStat b{font-size:2rem; line-height:1; letter-spacing:-.04em}
+    .miniStat span{color:var(--muted)}
+    main{display:grid; gap:20px}
+    .sectionTitle{display:flex; align-items:end; justify-content:space-between; gap:16px; margin:8px 0 12px}
+    .sectionTitle h2{margin:0; font-size:clamp(1.45rem,2.4vw,2.2rem); letter-spacing:-.04em}
+    .sectionTitle p{margin:0; color:var(--muted); max-width:58ch}
+    .chooser{display:grid; grid-template-columns:repeat(4,1fr); gap:12px}
+    .pitchBtn{border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:18px; padding:15px; text-align:left; cursor:pointer; transition:transform .16s ease, border-color .16s ease, background .16s ease}
+    .pitchBtn:hover{transform:translateY(-2px); border-color:var(--accent)}
+    .pitchBtn:focus-visible,.engineCard:focus-visible,.quiz button:focus-visible,.tabs button:focus-visible{outline:3px solid color-mix(in oklab, var(--accent) 60%, transparent); outline-offset:3px}
+    .pitchBtn[aria-pressed="true"]{border-color:var(--accent); background:color-mix(in oklab, var(--accent) 12%, var(--panel)); box-shadow:inset 0 0 0 1px var(--accent)}
+    .pitchBtn strong{display:block; margin-bottom:5px}
+    .pitchBtn span{display:block; color:var(--muted); font-size:.92rem}
+    .lab{display:grid; grid-template-columns: 1fr 360px; gap:18px}
+    .panel{padding:20px}
+    .matrix{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px}
+    .engineCard{border:1px solid var(--line); border-radius:18px; padding:16px; background:var(--panel); cursor:pointer; min-height:210px; display:flex; flex-direction:column; gap:12px}
+    .engineCard.selected{border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); background:color-mix(in oklab, var(--accent) 8%, var(--panel))}
+    .engineHead{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .engineHead h3{margin:0; font-size:1.18rem; letter-spacing:-.03em}
+    .fit{font-family:var(--mono); border:1px solid var(--line); border-radius:999px; padding:4px 8px; font-size:.85rem; background:var(--panel-2)}
+    .bar{height:9px; border-radius:999px; background:var(--panel-2); overflow:hidden; border:1px solid var(--line)}
+    .bar > i{display:block; height:100%; width:var(--w); background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:999px; transition:width .25s ease}
+    .engineCard p{margin:0; color:var(--muted); font-size:.95rem}
+    .tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:auto}
+    .tag{font-size:.78rem; padding:5px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:var(--panel-2)}
+    .inspector{position:sticky; top:14px; align-self:start}
+    .inspector h3{font-size:1.4rem; margin:0 0 4px; letter-spacing:-.03em}
+    .verdict{font-size:1.08rem; margin:12px 0; padding:14px; border-radius:16px; background:color-mix(in oklab, var(--accent-2) 10%, var(--panel)); border:1px solid color-mix(in oklab, var(--accent-2) 45%, var(--line))}
+    .why{display:grid; gap:10px; margin-top:12px}
+    .whyRow{display:grid; grid-template-columns:96px 1fr; gap:10px; align-items:center}
+    .whyRow span{font-size:.82rem; color:var(--muted)}
+    .readout{font-family:var(--mono); font-size:.87rem; color:var(--muted); margin-top:12px; border-top:1px solid var(--line); padding-top:12px}
+    .ruleGrid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px}
+    .rule{background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:16px}
+    .rule b{display:block; margin-bottom:8px}
+    .rule p{margin:0; color:var(--muted); font-size:.93rem}
+    .tabs{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+    .tabs button{border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:999px; padding:9px 12px; cursor:pointer}
+    .tabs button[aria-selected="true"]{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+    .deep{display:grid; grid-template-columns:.75fr 1.25fr; gap:18px; align-items:start}
+    .bigLabel{font-size:clamp(2.2rem,5vw,5.8rem); line-height:.92; letter-spacing:-.07em; margin:0}
+    .doDont{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .doDont div{border:1px solid var(--line); border-radius:16px; padding:14px; background:var(--panel)}
+    .doDont h4{margin:0 0 8px}
+    ul{margin:0; padding-left:1.15rem; color:var(--muted)}
+    li{margin:.35rem 0}
+    .quiz{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
+    .quizCard{border:1px solid var(--line); background:var(--panel); border-radius:18px; padding:16px}
+    .quiz button{width:100%; text-align:left; border:1px solid var(--line); border-radius:14px; background:var(--panel-2); color:var(--ink); margin-top:8px; padding:10px 12px; cursor:pointer}
+    .quiz button.correct{border-color:var(--accent-2); background:color-mix(in oklab, var(--accent-2) 15%, var(--panel))}
+    .quiz button.wrong{border-color:var(--bad); background:color-mix(in oklab, var(--bad) 12%, var(--panel))}
+    .feedback{min-height:44px; margin-top:10px; color:var(--muted)}
+    details{border:1px solid var(--line); background:var(--panel); border-radius:18px; padding:14px 16px}
+    summary{cursor:pointer; font-weight:700}
+    .sources{font-size:.88rem; color:var(--muted)}
+    .sources li{margin:.55rem 0}
+    @media (max-width: 980px){
+      header,.lab,.deep{grid-template-columns:1fr}.inspector{position:static}.chooser{grid-template-columns:repeat(2,1fr)}.matrix{grid-template-columns:repeat(2,1fr)}.ruleGrid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width: 620px){
+      .wrap{width:min(100% - 18px, 1180px); padding-top:10px}.hero,.scoreboard,.panel{padding:16px}.chooser,.matrix,.ruleGrid,.quiz,.doDont{grid-template-columns:1fr}.whyRow{grid-template-columns:1fr}.pitchBtn{padding:14px}.sectionTitle{display:block}.bigLabel{font-size:2.45rem}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <section class="hero" aria-labelledby="title">
+        <div class="eyebrow">Interactive engine-choice lab · AI-heavy games</div>
+        <h1 id="title">Pick the engine by the AI workload, not by the logo.</h1>
+        <p class="lede">Godot, Unity, Unreal, and platform/custom engines can all power “AI games.” The useful question is narrower: <em>what job is the AI doing, where must it run, and how much production machinery does the team need?</em></p>
+        <div class="thesis"><strong>Core insight:</strong> “AI game” is not one category. A 2D cozy game with an LLM storyteller, a neural-net mobile mechanic, a thousand-agent city, and a cinematic stealth shooter want different engines.</div>
+      </section>
+      <aside class="scoreboard" aria-label="Learning progress">
+        <div>
+          <div class="eyebrow">Progress</div>
+          <div class="progressTop" aria-hidden="true"><div class="progressFill" id="progressFill"></div></div>
+        </div>
+        <div class="miniStat"><span>Scenarios explored</span><b id="seenCount">1</b></div>
+        <div class="miniStat"><span>Current best fit</span><b id="bestFit">Unity</b></div>
+        <p class="readout">Heuristic, not procurement advice. Scores are relative teaching aids based on public engine capabilities and common production patterns.</p>
+      </aside>
+    </header>
+
+    <main>
+      <section class="panel" aria-labelledby="predict-title">
+        <div class="sectionTitle">
+          <div><div class="eyebrow">1 · Predict</div><h2 id="predict-title">Choose the kind of AI your game actually needs.</h2></div>
+          <p>Start with the game’s AI role. The fit matrix will move immediately — quick feedback first, prose second.</p>
+        </div>
+        <div class="chooser" id="scenarioChooser" role="group" aria-label="Game scenarios"></div>
+      </section>
+
+      <section class="lab" aria-labelledby="observe-title">
+        <div class="panel">
+          <div class="sectionTitle">
+            <div><div class="eyebrow">2 · Observe</div><h2 id="observe-title">Watch the engine fit change.</h2></div>
+            <p>Click an engine card to inspect tradeoffs. Higher score means stronger fit for this scenario, not “better engine.”</p>
+          </div>
+          <div class="matrix" id="engineMatrix" aria-live="polite"></div>
+        </div>
+        <aside class="panel inspector" aria-labelledby="inspect-title">
+          <div class="eyebrow">3 · Explain</div>
+          <h3 id="inspect-title">Why this fit?</h3>
+          <div id="inspectorBody"></div>
+        </aside>
+      </section>
+
+      <section class="panel" aria-labelledby="rules-title">
+        <div class="sectionTitle">
+          <div><div class="eyebrow">Decision grammar</div><h2 id="rules-title">Five questions beat engine tribalism.</h2></div>
+          <p>If you can answer these, the engine shortlist usually becomes obvious.</p>
+        </div>
+        <div class="ruleGrid">
+          <div class="rule"><b>1. Runtime or tooltime?</b><p>AI in the shipped game has different needs from AI used to make art, levels, dialogue drafts, or tests.</p></div>
+          <div class="rule"><b>2. On-device or server?</b><p>On-device inference values deployment/runtime support. Server LLMs care more about networking, latency, moderation, and cost controls.</p></div>
+          <div class="rule"><b>3. 2D, stylized, or cinematic 3D?</b><p>Visual target changes the production burden more than the AI label does.</p></div>
+          <div class="rule"><b>4. How many agents?</b><p>One companion NPC is design-heavy. Thousands of agents become simulation architecture and tooling.</p></div>
+          <div class="rule"><b>5. Who is building it?</b><p>Solo/open-source teams, C# studios, AAA teams, and UGC creators optimize for different risks.</p></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="deep-title">
+        <div class="tabs" role="tablist" aria-label="Engine detail tabs" id="detailTabs"></div>
+        <div class="deep" id="detailPanel" role="tabpanel" aria-labelledby="deep-title"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="quiz-title">
+        <div class="sectionTitle">
+          <div><div class="eyebrow">4 · Retrieve</div><h2 id="quiz-title">Two quick calls. No perfect answers — just better reasoning.</h2></div>
+          <p>Pick the most defensible starting engine. Feedback explains the criterion that matters.</p>
+        </div>
+        <div class="quiz" id="quiz"></div>
+      </section>
+
+      <details>
+        <summary>Sources and caveats</summary>
+        <ul class="sources">
+          <li>Checked 2026-05-25. Godot documentation: Navigation and AI-adjacent engine systems — <a href="https://docs.godotengine.org/en/stable/tutorials/navigation/index.html">docs.godotengine.org</a>.</li>
+          <li>Unity documentation/product pages: Sentis for neural network models in Unity runtime and ML-Agents for training intelligent agents — <a href="https://unity.com/products/sentis">unity.com/products/sentis</a>, <a href="https://unity.com/products/machine-learning-agents">unity.com/products/machine-learning-agents</a>.</li>
+          <li>Epic documentation: Unreal Behavior Trees and Learning Agents — <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/behavior-trees-in-unreal-engine">Behavior Trees</a>, <a href="https://dev.epicgames.com/documentation/en-us/unreal-engine/learning-agents-in-unreal-engine">Learning Agents</a>.</li>
+          <li>Roblox Creator documentation and Bevy project materials were used as representative “other engine/platform” anchors. Treat platform availability, pricing, and package names as moving targets; verify before production commitment.</li>
+          <li>The matrix uses ordinal heuristics, not benchmarked performance numbers. It is designed to teach discrimination between AI workloads.</li>
+        </ul>
+      </details>
+    </main>
+  </div>
+
+  <script>
+    const scenarios = [
+      {id:'companion', title:'AI companion RPG', desc:'One memorable NPC talks, remembers, and reacts.', weights:{runtime:5, tools:3, fidelity:3, scale:2, solo:3, ecosystem:5}},
+      {id:'mobileml', title:'Mobile neural mechanic', desc:'A small model runs on-device for gameplay.', weights:{runtime:5, tools:2, fidelity:2, scale:2, solo:3, ecosystem:5}},
+      {id:'stealth', title:'Cinematic stealth shooter', desc:'High-fidelity 3D enemies coordinate, perceive, and flank.', weights:{runtime:3, tools:5, fidelity:5, scale:4, solo:1, ecosystem:4}},
+      {id:'crowd', title:'Thousand-agent city', desc:'Crowds, traffic, factions, and emergent simulation.', weights:{runtime:4, tools:4, fidelity:3, scale:5, solo:2, ecosystem:3}},
+      {id:'cozy2d', title:'2D cozy AI director', desc:'Small team, procedural quests, adaptive pacing.', weights:{runtime:3, tools:3, fidelity:1, scale:2, solo:5, ecosystem:3}},
+      {id:'ugc', title:'UGC/social AI world', desc:'Players create, remix, and share AI-assisted experiences.', weights:{runtime:3, tools:5, fidelity:2, scale:4, solo:3, ecosystem:4}},
+      {id:'research', title:'RL research sandbox', desc:'You train agents and instrument experiments more than ship content.', weights:{runtime:4, tools:2, fidelity:1, scale:4, solo:4, ecosystem:2}},
+      {id:'procworld', title:'Generated 3D world', desc:'AI assists quests, terrain, testing, and live content variation.', weights:{runtime:4, tools:5, fidelity:4, scale:4, solo:2, ecosystem:5}}
+    ];
+
+    const engines = [
+      {id:'godot', name:'Godot', short:'Best when openness, small-team speed, 2D/stylized scope, and custom server AI matter more than first-party ML tooling.', caps:{runtime:3, tools:3, fidelity:2, scale:3, solo:5, ecosystem:3}, tags:['open source','2D/stylized','GDScript/C#','custom AI'], verdicts:{high:'Use Godot if the AI is mostly game logic, orchestration, external LLM calls, or small-team experimentation.', low:'Godot can work, but expect to build or integrate more AI tooling yourself.'}},
+      {id:'unity', name:'Unity', short:'Strong default for cross-platform AI gameplay: C#, huge package ecosystem, Sentis-style inference, ML-Agents history, mobile/XR reach.', caps:{runtime:5, tools:4, fidelity:3, scale:3, solo:4, ecosystem:5}, tags:['C#','Sentis','ML-Agents','mobile/XR'], verdicts:{high:'Unity is the pragmatic middle: runtime ML, prototypes, mobile, and broad hiring/tooling all line up.', low:'Unity may be more engine than a tiny 2D project needs, and less cinematic out-of-box than Unreal.'}},
+      {id:'unreal', name:'Unreal', short:'Best for high-fidelity 3D games where AI behavior must plug into perception, Behavior Trees/EQS/StateTree, animation, and cinematic tooling.', caps:{runtime:4, tools:5, fidelity:5, scale:5, solo:2, ecosystem:4}, tags:['AAA 3D','Behavior Trees','EQS','Learning Agents'], verdicts:{high:'Unreal fits when the AI is embodied in rich 3D characters, crowds, animation, and level-design workflows.', low:'Unreal’s power is real, but the overhead is costly if the AI experience is mostly server text or lightweight 2D.'}},
+      {id:'roblox', name:'Roblox / UGC platform', short:'Best when the “AI game” is also a social creation platform: discovery, moderation, economy, and creator workflows are part of the product.', caps:{runtime:3, tools:4, fidelity:2, scale:5, solo:3, ecosystem:4}, tags:['UGC','social','creator tools','platform'], verdicts:{high:'Choose a platform engine when distribution, multiplayer social loops, and creation tools are the point.', low:'Bad fit if you need full engine ownership, premium 3D fidelity, or unrestricted runtime architecture.'}},
+      {id:'custom', name:'Custom / Bevy / ECS', short:'Best for research, unusual simulation, deterministic servers, or owning the tech stack; weakest when you need polished editor workflows fast.', caps:{runtime:4, tools:2, fidelity:2, scale:5, solo:3, ecosystem:2}, tags:['ECS','research','simulation','full control'], verdicts:{high:'Custom/ECS shines when the engine is part of the research or simulation problem.', low:'If your risk is content production, tooling, or hiring, custom tech usually slows learning.'}}
+    ];
+
+    const criteria = ['runtime','tools','fidelity','scale','solo','ecosystem'];
+    const labels = {runtime:'Runtime AI', tools:'Authoring tools', fidelity:'3D fidelity', scale:'Agent scale', solo:'Small-team fit', ecosystem:'Ecosystem'};
+    let currentScenario = scenarios[1];
+    let selectedEngine = 'unity';
+    const seen = new Set([currentScenario.id]);
+    let quizCorrect = new Set();
+
+    function score(engine, scenario){
+      let total=0, max=0;
+      criteria.forEach(k=>{ total += engine.caps[k] * scenario.weights[k]; max += 5 * scenario.weights[k]; });
+      return Math.round((total / max) * 100);
+    }
+    function sortedEngines(){ return [...engines].sort((a,b)=>score(b,currentScenario)-score(a,currentScenario)); }
+    function fitWord(n){ return n>=82?'strong':n>=70?'good':n>=58?'situational':'weak'; }
+    function updateProgress(){
+      const pct = Math.min(100, 18 + seen.size / scenarios.length * 52 + quizCorrect.size * 15);
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('seenCount').textContent = seen.size;
+      document.getElementById('bestFit').textContent = sortedEngines()[0].name.split(' / ')[0];
+    }
+    function renderScenarios(){
+      const el = document.getElementById('scenarioChooser');
+      el.innerHTML = scenarios.map(s=>`<button class="pitchBtn" data-id="${s.id}" aria-pressed="${s.id===currentScenario.id}"><strong>${s.title}</strong><span>${s.desc}</span></button>`).join('');
+      el.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{
+        currentScenario = scenarios.find(s=>s.id===btn.dataset.id); seen.add(currentScenario.id); selectedEngine = sortedEngines()[0].id; renderAll();
+      }));
+    }
+    function renderMatrix(){
+      const el = document.getElementById('engineMatrix');
+      el.innerHTML = sortedEngines().map(e=>{
+        const sc=score(e,currentScenario);
+        return `<button class="engineCard ${e.id===selectedEngine?'selected':''}" data-id="${e.id}">
+          <div class="engineHead"><h3>${e.name}</h3><span class="fit">${sc}% · ${fitWord(sc)}</span></div>
+          <div class="bar" aria-hidden="true"><i style="--w:${sc}%"></i></div>
+          <p>${e.short}</p>
+          <div class="tags">${e.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        </button>`
+      }).join('');
+      el.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>{selectedEngine=btn.dataset.id; renderAll(false)}));
+    }
+    function renderInspector(){
+      const e=engines.find(x=>x.id===selectedEngine), sc=score(e,currentScenario);
+      const top=sortedEngines()[0].id===e.id;
+      const deltas=criteria.map(k=>({k, need:currentScenario.weights[k], cap:e.caps[k], product:currentScenario.weights[k]*e.caps[k]})).sort((a,b)=>b.need-a.need);
+      document.getElementById('inspectorBody').innerHTML = `
+        <p class="verdict"><strong>${e.name}</strong> is a <strong>${fitWord(sc)}</strong> fit for <strong>${currentScenario.title}</strong>. ${top?'It is the current top recommendation.':'It is viable only if its tradeoffs match your team.'}</p>
+        <p>${sc>=72?e.verdicts.high:e.verdicts.low}</p>
+        <div class="why">${deltas.map(d=>`<div class="whyRow"><span>${labels[d.k]}</span><div class="bar" title="Need ${d.need}/5, engine support ${d.cap}/5"><i style="--w:${(d.product/25)*100}%"></i></div></div>`).join('')}</div>
+        <div class="readout">Scenario need × engine support. The biggest bars are where this choice is carrying the design.</div>`;
+    }
+    function renderDetails(){
+      const tabs=document.getElementById('detailTabs');
+      tabs.innerHTML=engines.map(e=>`<button role="tab" aria-selected="${e.id===selectedEngine}" data-id="${e.id}">${e.name}</button>`).join('');
+      tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{selectedEngine=b.dataset.id; renderAll(false)}));
+      const e=engines.find(x=>x.id===selectedEngine);
+      const detail = {
+        godot:['Use for: 2D/stylized AI director, simulation prototypes, open-source projects, external LLM orchestration, custom agent logic.','Avoid as default for: first-party neural inference pipelines, AAA cinematic AI tooling, teams wanting a large commercial asset pipeline.'],
+        unity:['Use for: on-device ML mechanics, cross-platform prototypes, mobile/XR, C# teams, training agents with ML-Agents-style workflows.','Avoid as default for: massive cinematic 3D productions where Unreal’s content pipeline is the main advantage.'],
+        unreal:['Use for: stealth/combat AI, perception-heavy 3D NPCs, animation-rich agents, city/crowd simulations, high-end visuals.','Avoid as default for: simple server-LLM games, tiny 2D scopes, teams allergic to C++/large-toolchain overhead.'],
+        roblox:['Use for: social UGC worlds, creator-first loops, multiplayer/distribution as core product, AI-assisted creation inside a platform.','Avoid as default for: premium standalone games, unrestricted architecture, custom rendering, or non-platform economies.'],
+        custom:['Use for: academic RL, bespoke simulations, deterministic servers, unusual ECS workloads, engine research.','Avoid as default for: content-heavy games needing mature editors, designers, asset stores, console cert workflows.']
+      }[e.id];
+      document.getElementById('detailPanel').innerHTML = `
+        <div><p class="bigLabel">${e.name}</p><p class="lede">${e.short}</p></div>
+        <div class="doDont"><div><h4>Good use cases</h4><ul>${detail[0].replace('Use for: ','').split(', ').map(x=>`<li>${x}</li>`).join('')}</ul></div><div><h4>Be careful when</h4><ul>${detail[1].replace('Avoid as default for: ','').split(', ').map(x=>`<li>${x}</li>`).join('')}</ul></div></div>`;
+    }
+    function renderQuiz(){
+      const qs=[
+        {id:'q1', prompt:'A solo dev is making a 2D detective game where an external LLM writes suspect alibis, but gameplay is mostly dialogue state and puzzle flags.', answers:[['Godot','Correct. The hard part is design/orchestration, not first-party neural tooling. Godot keeps scope and ownership light.',true],['Unreal','Overkill unless the game’s value is high-fidelity 3D presentation.',false],['Custom ECS','Possible, but you would spend time rebuilding editor basics.',false]]},
+        {id:'q2', prompt:'A studio wants believable 3D guards: vision cones, patrols, cover, squad coordination, animation polish, and designer-tunable behavior.', answers:[['Unreal','Correct. This is where Unreal’s behavior/perception/content pipeline is a strong fit.',true],['Roblox','Only if the real product is a Roblox/social UGC experience.',false],['Godot','Possible for smaller scopes, but you would build more of the 3D AI tooling yourself.',false]]}
+      ];
+      document.getElementById('quiz').innerHTML=qs.map(q=>`<div class="quizCard"><h3>${q.prompt}</h3><div>${q.answers.map((a,i)=>`<button data-q="${q.id}" data-i="${i}">${a[0]}</button>`).join('')}</div><div class="feedback" id="fb-${q.id}"></div></div>`).join('');
+      document.querySelectorAll('.quiz button').forEach(btn=>btn.addEventListener('click',()=>{
+        const q=qs.find(x=>x.id===btn.dataset.q); const ans=q.answers[+btn.dataset.i];
+        btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('correct','wrong'));
+        btn.classList.add(ans[2]?'correct':'wrong'); if(ans[2]) quizCorrect.add(q.id);
+        document.getElementById('fb-'+q.id).textContent=ans[1]; updateProgress();
+      }));
+    }
+    function renderAll(resetChooser=true){ renderScenarios(); renderMatrix(); renderInspector(); renderDetails(); renderQuiz(); updateProgress(); }
+    renderAll();
+  </script>
+</body>
+</html>
