@@ -6,8 +6,8 @@
 <title>Liquid Glass: the trick is adaptive separation</title>
 <style>
   :root{
-    color-scheme: light dark;
-    --bg: #f4f2ed;
+    color-scheme: light;
+    --bg: #ffffff;
     --ink: #161719;
     --muted: #5b616b;
     --line: rgba(22,23,25,.16);
@@ -27,15 +27,13 @@
     --motion: 1;
     font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   }
-  @media (prefers-color-scheme: dark){
-    :root{ --bg:#080a0d; --ink:#f4f7fb; --muted:#a8b0bc; --line:rgba(255,255,255,.18); --panel:rgba(24,27,32,.55); --panel-strong:rgba(33,36,42,.86); --shadow:0 24px 80px rgba(0,0,0,.45), 0 2px 10px rgba(0,0,0,.35); }
-  }
+
   @media (prefers-reduced-motion: reduce){
     :root{ --motion:0; }
     *,*::before,*::after{ animation-duration:.001ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.001ms!important; }
   }
   *{box-sizing:border-box}
-  body{margin:0; background:var(--bg); color:var(--ink); line-height:1.45; overflow-x:hidden;}
+  body{margin:0; background:#ffffff; color:var(--ink); line-height:1.45; overflow-x:hidden;}
   button,input{font:inherit}
   button{min-height:44px; cursor:pointer}
   .page{min-height:100svh; padding:18px; position:relative;}
