@@ -25,10 +25,16 @@
   h3{margin:.2rem 0 .45rem;font-size:1.05rem}
   p{margin:.45rem 0;color:var(--muted)}
   .lede{font-size:clamp(1.05rem,1.6vw,1.3rem);max-width:820px;color:#34404c}
-  .grid{display:grid;grid-template-columns:1.08fr .92fr;gap:18px;align-items:start;margin-top:20px}
+  .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;align-items:start;margin-top:16px}
   .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
-  .controls{display:grid;gap:14px}
+  .controls{display:grid;gap:14px;position:sticky;top:16px}
   .control{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}
+  .stage{position:relative;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff}
+  .modifierDock{position:absolute;left:10px;right:10px;top:10px;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0;padding:10px;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 22px rgba(31,41,51,.10);backdrop-filter:blur(8px)}
+  .modifierDock .control{padding:10px;border-radius:14px;background:#fbfaf7;box-shadow:none}
+  .modifierDock label{font-size:.86rem;margin-bottom:4px}
+  .modifierDock p{display:none}
+  .modifierHint{font-size:.9rem;color:#34404c;margin:0 0 6px;font-weight:700}
   label{display:flex;justify-content:space-between;gap:12px;font-weight:800;color:#25313d;margin-bottom:8px}
   label span:last-child{color:var(--accent);font-variant-numeric:tabular-nums}
   input[type="range"]{width:100%;accent-color:var(--accent2)}
@@ -36,8 +42,8 @@
   .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .seg button,.quiz button,.smallbtn{min-height:44px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:10px 12px;text-align:left;cursor:pointer;color:var(--ink)}
   .seg button[aria-pressed="true"],.smallbtn.active{border-color:var(--accent2);background:#ecfdf5;color:#064e3b;box-shadow:inset 0 0 0 1px var(--accent2)}
-  .viz{position:relative;background:linear-gradient(#fff,#fff),var(--paper);border-radius:var(--radius);border:1px solid var(--line);overflow:hidden;min-height:520px}
-  svg{display:block;width:100%;height:auto;min-height:470px}
+  .viz{position:relative;background:linear-gradient(#fff,#fff),var(--paper);border-radius:var(--radius);border:1px solid var(--line);overflow:hidden;min-height:0}
+  svg{display:block;width:100%;height:auto;min-height:360px;padding-top:84px}
   .readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
   .readout{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;min-height:82px}
   .num{display:block;font-weight:900;font-size:1.2rem;color:#17202a}
@@ -58,7 +64,8 @@
   .bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .2s ease}
   footer{border-top:1px solid var(--line);margin-top:32px;padding:22px 0;color:var(--muted);font-size:.92rem}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  @media (max-width:900px){.grid,.lesson{grid-template-columns:1fr}.readouts{grid-template-columns:1fr}.seg{grid-template-columns:1fr}.quiz-row{grid-template-columns:1fr}.quiz-options{justify-content:flex-start}.wrap{padding:16px}.viz{min-height:430px}svg{min-height:400px}}
+  @media (max-width:900px){header{padding:18px 0 12px}h1{font-size:clamp(1.85rem,9vw,3rem)}.lede{font-size:1rem}.grid,.lesson{grid-template-columns:1fr}.controls{position:static}.readouts{grid-template-columns:1fr}.seg{grid-template-columns:1fr}.quiz-row{grid-template-columns:1fr}.quiz-options{justify-content:flex-start}.wrap{padding:12px}.viz{padding:12px}.modifierDock{grid-template-columns:repeat(4,minmax(150px,1fr));gap:8px;overflow-x:auto;right:auto;max-width:calc(100% - 20px);padding:8px}.modifierDock .control{padding:8px}.modifierDock label{font-size:.78rem}.modifierHint{font-size:.84rem}svg{min-height:300px;padding-top:104px}.callout{margin-top:10px}}
+  @media (max-width:520px){.modifierDock{grid-template-columns:repeat(4,150px)}.readouts{display:none}svg{min-height:300px;padding-top:118px}header .lede{display:none}.grid{margin-top:10px}.card{padding:12px}h2{font-size:1.35rem}.pill{font-size:.76rem}.modifierHint{display:none}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -81,6 +88,8 @@
       </div>
       <span class="pill" id="focusPill">focused</span>
     </div>
+    <p class="modifierHint">Primary controls now float on the diagram: change a slider and watch the lens immediately.</p>
+    <div class="stage">
     <svg id="raySvg" viewBox="0 0 900 520" role="img" aria-labelledby="svgTitle svgDesc">
       <title id="svgTitle">Interactive ray diagram</title>
       <desc id="svgDesc">A lens at the center bends three rays from an object. Sliders change curvature, object distance, aperture, and screen position.</desc>
@@ -99,6 +108,30 @@
       <g id="imageLayer"></g>
       <g id="labelsLayer"></g>
     </svg>
+    <div class="modifierDock" aria-label="Lens modifier controls">
+      <div class="control">
+        <label for="power">Lens shape <span id="powerVal">+38</span></label>
+        <input id="power" type="range" min="-55" max="70" value="38" step="1" />
+        <p>Positive = convex/converging. Negative = concave/diverging. Near zero behaves like flat glass.</p>
+      </div>
+      <div class="control">
+        <label for="objectDist">Object distance <span id="objectVal">230</span></label>
+        <input id="objectDist" type="range" min="90" max="360" value="230" step="5" />
+        <p>Move the object relative to one focal length and two focal lengths, like the textbook diagrams.</p>
+      </div>
+      <div class="control">
+        <label for="screenDist">Screen / retina <span id="screenVal">170</span></label>
+        <input id="screenDist" type="range" min="70" max="360" value="170" step="5" />
+        <p>If the screen is not at the image point, the image is blurred.</p>
+      </div>
+      <div class="control">
+        <label for="aperture">Pupil / aperture <span id="apertureVal">42</span></label>
+        <input id="aperture" type="range" min="18" max="92" value="42" step="2" />
+        <p>A small aperture blocks edge rays, reducing blur and aberration.</p>
+      </div>
+    </div>
+    </div>
+
     <div class="readouts" aria-live="polite">
       <div class="readout"><span class="unit">Lens state</span><span class="num" id="lensState">Converging</span><p id="lensCopy">Thicker middle: rays bend inward.</p></div>
       <div class="readout"><span class="unit">Image type</span><span class="num" id="imageType">Real, inverted</span><p id="imageCopy">Real images can land on a screen or retina.</p></div>
@@ -116,24 +149,8 @@
       </div>
     </div>
     <div class="control">
-      <label for="power">Lens shape / optical power <span id="powerVal">+38</span></label>
-      <input id="power" type="range" min="-55" max="70" value="38" step="1" />
-      <p>Positive = convex/converging. Negative = concave/diverging. Near zero behaves like flat glass.</p>
-    </div>
-    <div class="control">
-      <label for="objectDist">Object distance <span id="objectVal">230</span></label>
-      <input id="objectDist" type="range" min="90" max="360" value="230" step="5" />
-      <p>Move the object relative to one focal length and two focal lengths, like the textbook diagrams.</p>
-    </div>
-    <div class="control">
-      <label for="screenDist">Retina / screen position <span id="screenVal">170</span></label>
-      <input id="screenDist" type="range" min="70" max="360" value="170" step="5" />
-      <p>If the screen is not at the image point, the image is blurred. Eyeglasses fix this by changing effective bending before the eye lens.</p>
-    </div>
-    <div class="control">
-      <label for="aperture">Aperture / pupil size <span id="apertureVal">42</span></label>
-      <input id="aperture" type="range" min="18" max="92" value="42" step="2" />
-      <p>A small pupil/aperture blocks edge rays, reducing blur and aberration. That is why bright light can sharpen vision.</p>
+      <h3>2 · read the result</h3>
+      <p>The live diagram reports whether the current lens makes a real screen image, a virtual magnifier image, or a blur on the retina/screen.</p>
     </div>
     <div class="callout" id="explainBox"><strong>Prediction:</strong> Make the lens more convex. The image point should move closer to the lens.</div>
   </aside>
